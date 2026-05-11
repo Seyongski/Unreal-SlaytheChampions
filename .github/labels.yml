@@ -1,0 +1,39 @@
+# GitHub label seed list.
+# 현재 환경에서는 GitHub 라벨을 원격에 자동 생성할 권한이 없으므로,
+# GitHub 웹 UI 또는 gh CLI 설치 후 아래 기준으로 라벨을 한 번만 생성한다.
+
+- name: planning
+  color: "A371F7"
+  description: 기획, 밸런스, 문서, UX 설계 작업
+
+- name: dev
+  color: "0969DA"
+  description: 구현, 리팩터링, 로직 변경 작업
+
+- name: design
+  color: "D14D72"
+  description: UI, UX, 카메라, 비주얼 레퍼런스 작업
+
+- name: bug
+  color: "D1242F"
+  description: 버그, 회귀, 플레이 테스트 문제
+
+- name: daily-log
+  color: "6E7781"
+  description: 일일 작업 공유와 기록
+
+- name: phase-1
+  color: "54AEFF"
+  description: Phase 1 전투 프로토타입
+
+- name: phase-2
+  color: "8250DF"
+  description: Phase 2 MVP 전투 빌드
+
+- name: feedback-needed
+  color: "FBCA04"
+  description: 팀 피드백 또는 결정이 필요한 작업
+
+- name: tech-debt
+  color: "BF8700"
+  description: 기술 부채 또는 후순위 이관 항목

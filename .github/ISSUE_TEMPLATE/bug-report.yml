@@ -1,0 +1,43 @@
+name: Bug Report
+description: 버그, 회귀, 플레이 테스트 문제를 기록합니다.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제 설명
+      description: 실제로 발생한 문제를 적습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 절차
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 심각도
+      options:
+        - Blocker
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 로그 / 스크린샷 / 링크

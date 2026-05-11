@@ -1,0 +1,37 @@
+name: Daily Log
+description: 오늘 진행한 작업과 결정 사항을 GitHub에도 남길 때 사용합니다.
+title: "[Daily] YYYY-MM-DD "
+labels: ["daily-log"]
+body:
+  - type: input
+    id: date
+    attributes:
+      label: 날짜
+      placeholder: "2026-05-11"
+    validations:
+      required: true
+  - type: textarea
+    id: work
+    attributes:
+      label: 오늘 한 작업
+      placeholder: |
+        -
+        -
+    validations:
+      required: true
+  - type: textarea
+    id: decisions
+    attributes:
+      label: 오늘 결정된 내용
+  - type: textarea
+    id: blockers
+    attributes:
+      label: 막힌 점 / 고민한 점
+  - type: textarea
+    id: links
+    attributes:
+      label: 관련 Notion / PR / 커밋 링크
+  - type: textarea
+    id: next
+    attributes:
+      label: 다음 액션
