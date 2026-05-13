@@ -75,6 +75,67 @@ Issue 템플릿:
 
 현재 원격 라벨은 `gh` CLI로 생성 완료했다.
 
+### Module-based Issue 운영
+
+팀 작업은 Phase 확장 순서보다 모듈 오너십을 우선해서 관리한다.
+
+Phase는 일정과 마감 기준이고, Issue의 실제 담당 단위는 아래 모듈을 기준으로 한다.
+
+- `Combat Kernel`
+- `Card & Deck`
+- `Entity & Stats`
+- `NPC Brain`
+- `World Progress`
+- `Interface & Camera`
+
+모듈별 상세 작업 범위는 `docs/module-work-breakdown.md`와 `docs/module-work-breakdown/` 폴더의 개별 문서를 따른다.
+
+Issue 제목은 아래 형식을 권장한다.
+
+```text
+[Module][Phase] 작업명
+```
+
+예시:
+
+```text
+[Combat Kernel][Phase 1] Action Queue FIFO 실행 구현
+[Card & Deck][Phase 1] 캐릭터별 덱/손패/버림 pile 구현
+[Entity & Stats][Phase 2] 상태이상 Tick 처리 구현
+[NPC Brain][Phase 4] 보스 기믹 패턴 구현
+[World Progress][Phase 3] Grid Map 노드 선택 구현
+[Interface & Camera][Phase 1] 전투 HUD와 파티원 선택 UI 구현
+```
+
+Issue 본문에는 최소한 아래 항목을 포함한다.
+
+- 목표: 이 작업이 해결해야 하는 문제
+- 모듈: 담당 모듈
+- Phase: 적용되는 일정 단계
+- 관련 문서: `docs/product-specs/`, `docs/module-work-breakdown/` 링크
+- 완료 기준: 테스트하거나 확인할 수 있는 체크리스트
+- 리스크: 다른 모듈과 충돌할 수 있는 지점
+
+Issue 라벨은 작업 성격과 Phase를 함께 붙인다.
+
+| 상황 | 권장 라벨 |
+| --- | --- |
+| 구현 작업 | `dev`, `phase-n` |
+| 기획/문서 작업 | `planning`, `phase-n` |
+| UI/UX/카메라 작업 | `design`, `phase-n` |
+| 회의 또는 결정 필요 | `meeting-needed`, `feedback-needed`, `phase-n` |
+| 기술 부채 또는 후순위 이관 | `tech-debt`, `phase-n` |
+
+Issue를 만들기 전에 Notion 작업 보드에 같은 이름의 작업을 먼저 만들고, GitHub Issue 생성 후 Notion의 `GitHub 링크` 필드에 Issue URL을 붙인다.
+
+PR을 만들 때는 관련 Issue 번호를 PR 본문에 연결한다.
+
+```text
+Related Issue: #12
+```
+
+작업이 완료되면 GitHub Issue를 닫고, Notion 작업 상태도 수동으로 `완료`로 변경한다.
+
 ### Projects
 
 GitHub Project는 구현 이슈의 개발 진행 상태를 보는 보드로 사용한다.

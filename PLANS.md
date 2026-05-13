@@ -1,5 +1,20 @@
 # PLANS.md
 
+## Module Work Breakdown
+
+팀 작업 분배와 담당 파트 기준은 `docs/module-work-breakdown.md`를 기준으로 관리한다.
+
+Phase는 일정과 마감 단위로 유지하되, 실제 작업은 아래 6개 모듈 오너십으로 나누어 진행한다.
+
+- Combat Kernel
+- Card & Deck Engine
+- Entity & Stats
+- NPC Brain
+- World Progress
+- Interface & Camera
+
+GitHub Issue와 Notion 작업 보드의 작업 제목은 `[Module][Phase] 작업명` 형식을 권장한다.
+
 ## 목적
 
 이 문서는 파티 기반 로그라이크 덱빌딩 게임의 개발 마일스톤, MVP 범위, 우선순위, 보류 항목을 정리한다.
