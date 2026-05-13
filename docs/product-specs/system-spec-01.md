@@ -1,4 +1,4 @@
-# system-spec-01.md
+# GameManager.md
 
 ## Game Manager System
 
