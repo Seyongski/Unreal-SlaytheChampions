@@ -46,6 +46,19 @@
 -> 선택 결과를 RunSystem에 반영
 ```
 
+보상 상태는 `RewardSystem`이 소유한다. Game Manager는 보상 진입/종료 요청만 보내고, 어떤 보상 후보를 보여줄지와 선택 결과 적용은 RewardSystem이 처리한다.
+
+## 보상 상태
+
+| 상태 | 설명 |
+| --- | --- |
+| None | 보상 처리 없음 |
+| RewardInit | 노드 타입과 보상 풀 확인 |
+| RewardGenerate | 골드, 카드, 유물, 포션 후보 생성 |
+| RewardSelect | 플레이어가 보상 후보 선택 |
+| RewardApply | 선택 결과를 RunSystem에 반영 |
+| RewardComplete | 보상 종료 이벤트 발행 |
+
 ## 연결 시스템
 
 | 시스템 | 연결 |
@@ -62,6 +75,7 @@
 - 엘리트가 유물을 확정 지급하는가?
 - 보스가 전설 카드를 확정 지급하는가?
 - 선택한 보상이 RunSystem에 반영되는가?
+- Game Manager가 보상 후보를 직접 계산하지 않는가?
 
 ## 미정 항목
 

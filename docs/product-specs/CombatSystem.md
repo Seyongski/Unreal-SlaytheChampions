@@ -18,6 +18,23 @@ BattleStart
 -> BattleEndCheck
 ```
 
+전투 상태는 `CombatSystem`이 소유한다. Game Manager는 전투 상태를 직접 변경하지 않고, 전투 시작 요청과 전투 종료 결과만 주고받는다.
+
+## 전투 상태
+
+| 상태 | 설명 |
+| --- | --- |
+| None | 전투가 진행 중이 아님 |
+| BattleStart | 파티/적/전투 데이터를 초기화 |
+| PlayerTurnStart | 공용 코스트 회복, 드로우, 턴 시작 효과 처리 |
+| PlayerInput | 플레이어가 파티원과 카드를 선택 |
+| PlayerActionResolve | Action Queue를 FIFO 순서로 실행 |
+| EnemyTurn | 적 AI 행동 실행 |
+| TurnCleanup | 턴 종료 효과와 상태이상 Tick 처리 |
+| BattleEndCheck | 승리/패배 조건 확인 |
+| BattleWin | 승리 결과 이벤트 발행 |
+| BattleLose | 패배 결과 이벤트 발행 |
+
 ## 주요 책임
 
 - 전투 시작/종료 처리
@@ -75,6 +92,7 @@ PlayerTurnStart
 - 플레이어 턴 종료 후 Action Queue가 실행되는가?
 - 플레이어 행동 이후 적 턴이 실행되는가?
 - 승리/패배 조건이 정확히 판정되는가?
+- Game Manager가 전투 내부 상태를 직접 바꾸지 않는가?
 
 ## 미정 항목
 
