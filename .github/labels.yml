@@ -1,6 +1,5 @@
 # GitHub label seed list.
-# 현재 환경에서는 GitHub 라벨을 원격에 자동 생성할 권한이 없으므로,
-# GitHub 웹 UI 또는 gh CLI 설치 후 아래 기준으로 라벨을 한 번만 생성한다.
+# GitHub 웹 UI 또는 gh CLI로 라벨을 만들 때 아래 기준을 사용한다.
 
 - name: planning
   color: "A371F7"
@@ -33,6 +32,10 @@
 - name: feedback-needed
   color: "FBCA04"
   description: 팀 피드백 또는 결정이 필요한 작업
+
+- name: meeting-needed
+  color: "D4C5F9"
+  description: 회의가 필요한 안건 또는 회의 결과 로그
 
 - name: tech-debt
   color: "BF8700"
