@@ -20,7 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCardPlayed, FName, PlayedCard);
  * 책임:
  *  - 덱 초기화 및 셔플
  *  - 드로우 (DrawPile 부족 시 DiscardPile 자동 재순환)
- *  - 카드 사용 → 손패에서 제거 → DiscardPile 이동
+ *  - 카드 사용 -> 손패에서 제거 -> DiscardPile 이동
  *  - 턴 종료 시 손패 전체 버리기
  *
  * 전투 규칙(데미지 계산 등)은 이 컴포넌트 밖에서 처리한다.
@@ -53,7 +53,7 @@ public:
 
     /**
      * 덱을 설정하고 셔플 후 게임 시작 준비.
-     * @param InDeckNames  DataTable RowName 배열
+     * param InDeckNames  DataTable RowName 배열
      */
     UFUNCTION(BlueprintCallable, Category = "Card|Hand")
     void InitializeDeck(const TArray<FName>& InDeckNames);
@@ -66,7 +66,7 @@ public:
 
     /**
      * N장 드로우. DrawPile 부족 시 DiscardPile 재순환.
-     * @return 실제로 드로우된 카드 목록
+     * return 실제로 드로우된 카드 목록
      */
     UFUNCTION(BlueprintCallable, Category = "Card|Hand")
     TArray<FName> DrawCards(int32 Count);
@@ -75,7 +75,7 @@ public:
 
     /**
      * 손패에서 카드를 사용(DiscardPile 이동).
-     * @return 성공 여부 (손패에 없으면 false)
+     * return 성공 여부 (손패에 없으면 false)
      */
     UFUNCTION(BlueprintCallable, Category = "Card|Hand")
     bool PlayCard(FName CardName);
@@ -110,7 +110,7 @@ private:
     TArray<FName> Hand;
     TArray<FName> DiscardPile;
 
-    /** DiscardPile → DrawPile 재순환 + 셔플 */
+    /** DiscardPile -> DrawPile 재순환 + 셔플 */
     void RecycleDiscardIntoDraw();
 
     void BroadcastHandChanged();

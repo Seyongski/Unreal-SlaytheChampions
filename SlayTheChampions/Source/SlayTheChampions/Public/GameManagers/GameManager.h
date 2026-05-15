@@ -37,7 +37,7 @@ public:
 	void StartGame();
 	/*
 	게임상태 변경
-	@param state 변경할 상태(Run, Pause, Transition)
+	param state 변경할 상태(Run, Pause, Transition)
 	*/
 	void ChangeGameState(EGameState state);
 	/*게임 종료*/
