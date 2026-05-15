@@ -2,6 +2,7 @@
 
 
 #include "Unit/Unit.h"
+#include "Unit/StatComponent.h"
 
 // Sets default values
 AUnit::AUnit()
@@ -16,6 +17,22 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+UStatComponent* AUnit::GetStat() const
+{
+	return FindComponentByClass<UStatComponent>();
+}
+
+bool AUnit::IsAlive() const
+{
+	if (const UStatComponent* Stat = GetStat())
+	{
+		return Stat->CurrentHP > 0;
+	}
+
+	//StatComponent가 없으면 일단 살아있다고 판단하지 않음
+	return false;
 }
 
 

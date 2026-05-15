@@ -7,6 +7,7 @@
 #include "CombatTypes.h"
 #include "Unit.generated.h"
 
+class UStatComponent;
 
 /**
  * 전투에 등장하는 모든 액터의 베이스 Pawn.
@@ -31,9 +32,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	ETeam Team = ETeam::Enemy;
 
+	//StatComponent를 멤버로 두지 않고 Find로 꺼내기
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
+	UStatComponent* GetStat() const;
+
+	//StatComponent참조
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
+	bool IsAlive() const;
+
+	//StatComponent를 멤버로 안두는 이유는 AUnit은 무조건 StatComponent를 가지는 유닛으로만 굳어지는데,
+	//덫이나 함정같이 HP가 필요없는 액터도 Unit을 베이스로 둘때 사용
+	//FindComponentByClass<>로 꺼내면 컴포넌트가 없는 액터는 nullptr를 받아서 다르게 처리하면 됨
+
+
 protected:
 	
-
 	virtual void BeginPlay() override;
 
 };
