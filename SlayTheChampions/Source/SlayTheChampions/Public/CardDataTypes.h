@@ -78,6 +78,10 @@ struct FCardDataRow : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Identity")
     FText Description;
 
+    // 카드 1장당 고유 메인 이미지
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Identity")
+    TSoftObjectPtr<UTexture2D> MainImage;
+
     // ── 분류 ──────────────────────────────────
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Category")
     ECardRarity Rarity = ECardRarity::Normal;

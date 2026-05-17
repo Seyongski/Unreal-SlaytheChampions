@@ -7,8 +7,15 @@ public class SlayTheChampions : ModuleRules
 	public SlayTheChampions(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+
+		PublicDependencyModuleNames.AddRange(new string[] { "Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			 "UMG",        // 추가 - UserWidget, UImage, UTextBlock
+			"Slate",      // 추가
+			"SlateCore"   });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
