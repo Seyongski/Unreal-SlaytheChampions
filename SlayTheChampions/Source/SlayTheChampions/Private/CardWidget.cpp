@@ -8,18 +8,18 @@ void UCardWidget::SetCardData(const FCardDataRow& InCardData, UCardStyleDataAsse
 {
     CurrentCardData = InCardData;
 
-    // 직업별 스타일 이미지 적용
+    // Rarity에 맞는 직업별 스타일 이미지 적용
     if (InStyle)
     {
         if (BorderImage)
         {
-            UTexture2D* Border = InStyle->BorderImage.LoadSynchronous();
+            UTexture2D* Border = InStyle->GetBorderImage(InCardData.Rarity);
             if (Border) BorderImage->SetBrushFromTexture(Border);
         }
 
         if (GemImage)
         {
-            UTexture2D* Gem = InStyle->GemImage.LoadSynchronous();
+            UTexture2D* Gem = InStyle->GetGemImage(InCardData.Rarity);
             if (Gem) GemImage->SetBrushFromTexture(Gem);
         }
     }
@@ -41,6 +41,5 @@ void UCardWidget::SetCardData(const FCardDataRow& InCardData, UCardStyleDataAsse
     if (CostText)
         CostText->SetText(FText::AsNumber(InCardData.Cost));
 
-    // Blueprint 추가 처리
     OnCardDataSet(InCardData);
 }

@@ -68,7 +68,7 @@ struct FCardDataRow : public FTableRowBase
     // ── 식별 ──────────────────────────────────
     /** 카드 ID (DataTable RowName 과 동일하게 유지) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Identity")
-    FName Name;
+    int32 _Name;
 
     /** 인게임 표시 이름 (한글) */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Identity")
@@ -137,7 +137,7 @@ struct FCardDataRow : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Effect")
     FName EffectTag;
 
-    /** EffectTag 에 대응하는 스택/지속 수치 */
+    /** EffectTag 에 대응하는 턴 스택/지속 수치 */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Card|Effect",
         meta = (ClampMin = "0"))
     int32 EffectValue = 0;
