@@ -7,3 +7,4 @@ void UBattleMainWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 }
+

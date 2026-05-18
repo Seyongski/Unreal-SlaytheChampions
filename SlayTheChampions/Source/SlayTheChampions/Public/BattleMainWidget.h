@@ -6,9 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "BattleMainWidget.generated.h"
 
-/**
- *
- */
+
 UCLASS()
 class SLAYTHECHAMPIONS_API UBattleMainWidget : public UUserWidget
 {
@@ -26,6 +24,3 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* Button;
 
-
-
-};
