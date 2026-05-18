@@ -9,6 +9,8 @@
 #include "CombatKernel/CardPlayerController.h"
 #include "BattleMainWidget.generated.h"
 
+class UTextBlock;
+
 UCLASS()
 class SLAYTHECHAMPIONS_API UBattleMainWidget : public UUserWidget
 {
@@ -33,6 +35,24 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* AddNewText;
+
+	// 파티원 0 스탯 표시
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Party0HPText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Party0BlockText;
+
+	// 파티원 1 스탯 표시
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Party1HPText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Party1BlockText;
+
+	// 적 스탯 표시
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* EnemyHPText;
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UCardWidget> NewCard;
@@ -61,23 +81,23 @@ public:
 
 	// 파티원 0
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party0_HP = 50;
+	int32 Party0_HP = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party0_MaxHP = 50;
+	int32 Party0_MaxHP = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party0_Block = 0;
+	int32 Party0_Block = 1;
 
 	// 파티원 1
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party1_HP = 50;
+	int32 Party1_HP = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party1_MaxHP = 50;
+	int32 Party1_MaxHP = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
-	int32 Party1_Block = 0;
+	int32 Party1_Block = 1;
 
 	// 현재 선택된 파티원 인덱스 (0 또는 1)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Party")
@@ -85,13 +105,16 @@ public:
 
 	// 적
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Enemy")
-	int32 EnemyHP = 30;
+	int32 EnemyHP = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Enemy")
-	int32 EnemyMaxHP = 30;
+	int32 EnemyMaxHP = 100;
 
 	UFUNCTION()
 	void API_AddNewPlayerCard();
+
+	// 스탯 텍스트 블록을 현재 값으로 갱신
+	void RefreshStatsUI();
 
 	// 카드 데이터를 지정해서 손패에 추가한다
 	UFUNCTION(BlueprintCallable, Category = "Combat")
