@@ -22,16 +22,20 @@ public:
 	UStatComponent();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stat")
-	float MaxHP = 100;
+	int32 MaxHP = 100;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stat")
-	float CurrentHP = 100;
+	int32 CurrentHP = 100;
 
 	UFUNCTION(BlueprintCallable, Category  = "Stat")
-	void TakeDamage(float Damage, AUnit* Instigator);
+	void TakeDamage(int32 Damage, AUnit* Instigator);
 
 	UFUNCTION(BlueprintCallable, Category = "Stat")
-	void Heal(float Amount);
+	void Heal(int32 Amount);
+
+	UPROPERTY(BlueprintAssignable, Category = "Stat")
+	FOnHPChanged OnHPChanged;
+		
 
 protected:
 	// Called when the game starts

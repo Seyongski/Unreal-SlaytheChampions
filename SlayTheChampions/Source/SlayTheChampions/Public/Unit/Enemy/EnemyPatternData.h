@@ -8,7 +8,7 @@
 #include "EnemyPatternData.generated.h"
 
 /**
- * 에셋을 수정하면 다른적이 되게끔 코드 수정 불필요
+ * 에셋을 수정하면 다른적이 되게끔. 코드 수정 불필요
  */
 UCLASS(BlueprintType)
 class SLAYTHECHAMPIONS_API UEnemyPatternData : public UPrimaryDataAsset

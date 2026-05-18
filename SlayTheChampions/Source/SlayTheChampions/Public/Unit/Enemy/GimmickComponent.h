@@ -8,8 +8,15 @@
 #include "GimmickComponent.generated.h"
 
 class UGimmickData;
+class UStatComponent;
+class AUnit;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPhaseEntered, const FGimmickPhase&, Phase);
+
+//기믹이 외부 시스템에 요청하는 Delegate
+//CombatManager가 실제처리
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGimmickDamageRequest, ETargetType, TargetType, int32, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGimmickAnnounce, const FText&, Text);
 
 UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
 class SLAYTHECHAMPIONS_API UGimmickComponent : public UActorComponent
@@ -20,6 +27,7 @@ public:
 	// Sets default values for this component's properties
 	UGimmickComponent();
 
+	//데이터
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick")
 	UGimmickData* Data = nullptr;
 
@@ -30,22 +38,38 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Gimmick")
 	int32 TurnCounter = 0;
 
-	// CombatManager가 턴 시작 시 호출
+	// CombatManager가 호출
 	UFUNCTION(BlueprintCallable, Category = "Gimmick")
 	void OnTurnStart();
 		
-	// UI/연출이 구독. "그가 분노한다!" 같은 연출 트리거용
+	UFUNCTION(BlueprintCallable, Category = "Gimmick")
+	void OnTurnEnd();
+	
+	// 외부 구독용 Delegate
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick")
 	FOnPhaseEntered OnPhaseEntered;
+
+	UPROPERTY(BlueprintAssignable, Category = "Gimmick")
+	FOnGimmickDamageRequest OnGimmickDamageRequest;
+
+	UPROPERTY(BlueprintAssignable, Category = "Gimmick")
+	FOnGimmickAnnounce OnGimmickAnnounce;
 
 protected:
 	virtual void BeginPlay() override;
 
-	//StatComponent.OnHPChanged에 자동바인딩 는 아직 구현 x
-	/*
+	// ── 서브클래스용 virtual hooks ──
+	// OnTurnStart/End 내부에서 호출됨
+	virtual void OnGimmickTurnStart() {}
+	virtual void OnGimmickTurnEnd() {}
+
+	// StatComponent.OnHPChanged에 자동 바인딩됨
 	UFUNCTION()
-	void HandleHPChanged(float OldHP, float NewHP);
-	*/
+	virtual void HandleHPChanged(int32 OldHP, int32 NewHP) {}
+
+	// Unit.OnUnitDied에 자동 바인딩됨
+	UFUNCTION()
+	virtual void HandleOwnerDied(AUnit* Unit) {}
 
 private:
 	void CheckTriggers();

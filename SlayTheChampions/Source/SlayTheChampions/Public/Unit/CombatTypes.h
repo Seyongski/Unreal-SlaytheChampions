@@ -36,7 +36,7 @@ struct SLAYTHECHAMPIONS_API FIntent
     GENERATED_BODY()
 
     UPROPERTY(BlueprintReadOnly) EIntentKind Kind = EIntentKind::Unknown;
-    UPROPERTY(BlueprintReadOnly) float       Value = 0.f;  // 예상 데미지 or 블록량
+    UPROPERTY(BlueprintReadOnly) int32       Value = 0;  // 예상 데미지 or 블록량
     UPROPERTY(BlueprintReadOnly) int32       Hits = 1;
     UPROPERTY(BlueprintReadOnly) TWeakObjectPtr<AUnit> Target;
     UPROPERTY(BlueprintReadOnly) FText       DisplayText;
@@ -67,7 +67,7 @@ struct SLAYTHECHAMPIONS_API FEnemyAction
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly) EIntentKind  IntentKind = EIntentKind::Attack;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) float        Value = 0.f;   // 데미지 or 블록량
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) int32        Value = 0;   // 데미지 or 블록량
     UPROPERTY(EditAnywhere, BlueprintReadOnly) int32        Hits = 1;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) ETargetType  TargetType = ETargetType::SingleEnemy;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) float        Weight = 1.f;   // Weighted 모드에서만 사용

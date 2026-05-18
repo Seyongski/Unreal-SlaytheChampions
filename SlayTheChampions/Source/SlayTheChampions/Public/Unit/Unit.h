@@ -15,6 +15,11 @@ class UStatComponent;
  * 블루프린트 또는 스폰 코드에서 필요한 컴포넌트를 부착해 능력을 부여한다.
  */
 
+
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
+
+
+
 UCLASS()
 class SLAYTHECHAMPIONS_API AUnit : public APawn
 {
@@ -31,6 +36,14 @@ public:
 	//유닛 소속
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	ETeam Team = ETeam::Enemy;
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
+	UPROPERTY(BlueprintAssignable, Category = "Unit")
+	FOnUnitDied OnUnitDied;
+
+	//
+	UFUNCTION(BlueprintCallable, Category = "Unit")
+	void HandleDeath();
 
 	//StatComponent를 멤버로 두지 않고 Find로 꺼내기
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")

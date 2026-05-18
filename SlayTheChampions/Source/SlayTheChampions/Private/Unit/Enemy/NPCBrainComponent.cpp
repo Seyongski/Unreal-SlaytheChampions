@@ -25,7 +25,7 @@ void UNPCBrainComponent::PlanNextAction(const TArray<AUnit*>& Allies, const TArr
 	
 	//PickNext,PickTarget private함수를 호출하여 다음 액션에 저장
 	// 
-	//PendingAction = PickNext();
+	PendingAction = PickNext();
 	AUnit* Target = PickTarget(PendingAction.TargetType, Allies, Enemies);
 
 	//IntentComponent 갱신
