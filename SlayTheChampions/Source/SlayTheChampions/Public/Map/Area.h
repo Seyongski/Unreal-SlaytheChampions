@@ -49,8 +49,10 @@ public:
 	/* Area 방문 상태 설정 */
 	void SetVisitState(EAreaVisitState _visitState) { AreaInfo.AreaVisit = _visitState; }
 
+	/* Area 진입 가능 상태 설정 */
 	void SetCanEnter(bool bInCanEnter) { AreaInfo.bCanEnter = bInCanEnter; }
 
+	/* Area 현재 위치 설정 */
 	void SetCurrentArea(bool bInIsCurrentArea) { AreaInfo.bIsCurrentArea = bInIsCurrentArea; }
 
 	/* 이동 가능한 다음 Area 추가 */

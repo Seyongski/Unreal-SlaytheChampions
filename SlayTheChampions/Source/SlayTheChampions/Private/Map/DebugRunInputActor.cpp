@@ -1,8 +1,8 @@
 #include "Map/DebugRunInputActor.h"
 
 #include "GameFramework/PlayerController.h"
-#include "GameManagers/LevelManager.h"
 #include "InputCoreTypes.h"
+#include "Map/RunSystem.h"
 
 ADebugRunInputActor::ADebugRunInputActor()
 {
@@ -40,9 +40,10 @@ void ADebugRunInputActor::DebugReturnToMap()
 
 	if (UGameInstance* GameInstance = GetGameInstance())
 	{
-		if (ULevelManager* LevelManager = GameInstance->GetSubsystem<ULevelManager>())
+		//디버그용
+		if (URunSystem* RunSystem = GameInstance->GetSubsystem<URunSystem>())
 		{
-			LevelManager->GoToLevel(ReturnLevelName);
+			RunSystem->AreaCleared();
 		}
 	}
 }

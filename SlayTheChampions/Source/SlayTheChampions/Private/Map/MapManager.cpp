@@ -10,11 +10,16 @@ void UMapManager::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	MapCreator = NewObject<UMapCreator>(this, UMapCreator::StaticClass());
+	RunSystem = GetGameInstance()->GetSubsystem<URunSystem>();
 }
 
 void UMapManager::StartRunSystem()
 {
-	URunSystem* RunSystem = GetGameInstance()->GetSubsystem<URunSystem>();
+	if (!RunSystem)
+	{
+		RunSystem = GetGameInstance()->GetSubsystem<URunSystem>();
+	}
+
 	if (RunSystem)
 	{
 		RunSystem->StartRunWithMap();
@@ -33,7 +38,6 @@ void UMapManager::RestoreMapWorld()
 {
 	if (MapCreator)
 	{
-		//디버그용
 		MapCreator->RestoreWorldMap();
 	}
 }
@@ -47,7 +51,6 @@ void UMapManager::RefreshDebugMapState()
 {
 	if (MapCreator)
 	{
-		//디버그용
 		MapCreator->RefreshDebugWorldMapState();
 	}
 }

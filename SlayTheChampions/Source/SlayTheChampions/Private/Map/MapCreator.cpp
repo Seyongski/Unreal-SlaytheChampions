@@ -2,6 +2,7 @@
 
 #include "Map/MapCreator.h"
 
+#include "Subsystems/GameInstanceSubsystem.h"
 #include "Map/AreaLevelData.h"
 #include "Map/Area.h"
 #include "Map/MapAreaActor.h"
@@ -15,6 +16,16 @@ UMapCreator::UMapCreator(const FObjectInitializer& ObjectInitializer)
 
 UMapCreator::~UMapCreator()
 {
+}
+
+UWorld* UMapCreator::GetWorld() const
+{
+	if (const UObject* OuterObject = GetOuter())
+	{
+		return OuterObject->GetWorld();
+	}
+
+	return nullptr;
 }
 
 void UMapCreator::InitWorldMap()

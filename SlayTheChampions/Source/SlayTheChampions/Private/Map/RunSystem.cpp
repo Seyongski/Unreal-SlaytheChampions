@@ -1,14 +1,22 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Map/RunSystem.h"
+
+#include "GameManagers/LevelManager.h"
 #include "Map/Area.h"
 #include "Map/MapManager.h"
+#include "Map/RewardSystem.h"
 
 void URunSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
 	MapManager = GetGameInstance()->GetSubsystem<UMapManager>();
+	RewardSystem = NewObject<URewardSystem>(this, URewardSystem::StaticClass());
+	if (RewardSystem)
+	{
+		RewardSystem->Initialize(this);
+	}
 	CurrentRunState = ERunState::Ready;
 	CurrentRoomInfo = FAreaInfo();
 	bHasCurrentRoom = false;
@@ -28,6 +36,11 @@ void URunSystem::StartRun()
 
 void URunSystem::StartRunWithMap()
 {
+	if (!MapManager)
+	{
+		MapManager = GetGameInstance()->GetSubsystem<UMapManager>();
+	}
+
 	if (MapManager)
 	{
 		MapManager->MapCreate();
@@ -66,6 +79,39 @@ bool URunSystem::EnterRoom(UArea* Area)
 	BroadcastRoomTypeEvent(CurrentRoomInfo);
 	OnEnterableRoomsUpdated.Broadcast(GetEnterableRooms());
 	return true;
+}
+
+bool URunSystem::AreaCleared()
+{
+	if (!CurrentArea)
+	{
+		return false;
+	}
+
+	CurrentArea->SetVisitState(EAreaVisitState::Cleared);
+	CurrentArea->SetState(EAreaState::End);
+	CurrentRoomInfo = CurrentArea->GetAreaInfo();
+	CurrentRunState = ERunState::StageClear;
+	UpdateEnterableState();
+	if (RewardSystem)
+	{
+		RewardSystem->OpenAreaClearReward(CurrentRoomInfo);
+	}
+	return true;
+}
+
+void URunSystem::ReturnToMapAfterAreaClear()
+{
+	CurrentRunState = ERunState::StageSelect;
+	RefreshRunState();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (ULevelManager* LevelManager = GameInstance->GetSubsystem<ULevelManager>())
+		{
+			LevelManager->GoToLevel(MapLevelName);
+		}
+	}
 }
 
 bool URunSystem::EnterRoomByGridIndex(int32 FloorIndex, int32 RoomIndex)

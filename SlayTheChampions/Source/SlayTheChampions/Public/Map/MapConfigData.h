@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -16,21 +16,27 @@ public:
     UPROPERTY(EditAnywhere, Category = "Config")
     class UAreaLevelData* AreaLevelData = nullptr;
 
+    /*Map 너비*/
     UPROPERTY(EditAnywhere, Category = "Config")
     int32 MapWidth = 7;
 
+    /*Map 높이*/
     UPROPERTY(EditAnywhere, Category = "Config")
     int32 MapHeight = 15;
 
+    /*Area 생성 확률*/
     UPROPERTY(EditAnywhere, Category = "Config", meta = (ClampMin = "0.0", ClampMax = "100.0"))
     float AreaSpawnProbability = 45.f;
 
+    /*Area별 스폰확률*/
     UPROPERTY(EditAnywhere, Category = "Config")
     FAreaSpawnProbability AreaTypeSpawnProbability;
 
+    /*Area 고정 스폰 층*/
     UPROPERTY(EditAnywhere, Category = "Config")
     FAreaFixedPlacement FixedPlacement;
 
+    /*Map 타일간의 거리*/
     UPROPERTY(EditAnywhere, Category = "Config" )
     float TileDistance = 500.0f;
 

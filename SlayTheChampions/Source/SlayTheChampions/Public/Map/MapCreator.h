@@ -37,6 +37,8 @@ public:
 	UMapCreator(const FObjectInitializer& ObjectInitializer);
 	~UMapCreator();
 
+	virtual UWorld* GetWorld() const override;
+
 	/*맵 생성*/
 	void CreateMap();
 

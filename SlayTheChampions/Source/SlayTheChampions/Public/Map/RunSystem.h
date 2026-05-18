@@ -9,6 +9,7 @@
 
 class UArea;
 class UMapManager;
+class URewardSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoomSelectionChanged, const TArray<FAreaInfo>&, RoomInfos);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoomEntered, const FAreaInfo&, RoomInfo);
@@ -49,6 +50,12 @@ private:
 	/*MapManager*/
 	UPROPERTY()
 	UMapManager* MapManager = nullptr;
+
+	UPROPERTY()
+	URewardSystem* RewardSystem = nullptr;
+
+	UPROPERTY()
+	FName MapLevelName = TEXT("GridMap");
 
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -94,12 +101,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartRunWithMap();
 
+	/*Run 상태 갱신*/
 	UFUNCTION(BlueprintCallable)
 	void RefreshRunState();
 
 	/*Area 입장*/
 	UFUNCTION(BlueprintCallable)
 	bool EnterRoom(UArea* Area);
+
+	/*현재 Area 클리어 처리*/
+	UFUNCTION(BlueprintCallable)
+	bool AreaCleared();
+
+	/*Area 클리어 후 맵 복귀*/
+	UFUNCTION(BlueprintCallable)
+	void ReturnToMapAfterAreaClear();
 
 	/*Area 입장 by GridIndex*/ 
 	UFUNCTION(BlueprintCallable)
@@ -124,6 +140,12 @@ public:
 	/*현재 Area 정보 반환*/
 	UFUNCTION(BlueprintPure)
 	FAreaInfo GetCurrentRoomInfo() const { return CurrentRoomInfo; }
+
+	UFUNCTION(BlueprintPure)
+	URewardSystem* GetRewardSystem() const { return RewardSystem; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetMapLevelName(FName InMapLevelName) { MapLevelName = InMapLevelName; }
 
 	/*Party 설정*/
 	UFUNCTION(BlueprintCallable)

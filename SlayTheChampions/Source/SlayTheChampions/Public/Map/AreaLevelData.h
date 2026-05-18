@@ -35,6 +35,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AreaLevel")
 	FName ArtifactEventLevelName;
 
+	/* Area 타입에 따른 레벨 이름 반환 */
 	FName GetLevelName(EAreaType AreaType) const;
 };
 

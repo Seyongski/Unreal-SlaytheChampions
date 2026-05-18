@@ -41,8 +41,6 @@ void ULevelManager::OnLevelStarted(UWorld* World)
 	{
 		FString MapName = World->RemovePIEPrefix(World->GetMapName());
 
-		UE_LOG(LogTemp, Warning, TEXT("%s 이동 완료!"), *World->GetMapName());
-
 		if (MapName == "TestLoading")
 		{
 			AsynchronousLoadLevel();
