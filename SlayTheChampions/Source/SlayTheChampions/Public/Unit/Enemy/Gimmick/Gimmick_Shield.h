@@ -32,10 +32,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Gimmick|Shield")
 	bool HasShield() const { return CurrentStacks > 0; }
 
+	// 공격자가 TakeDamage 호출 전에 이 함수로 데미지를 보정
+   // 스택 있으면 1 반환 + 스택 소모, 없으면 원래 데미지 그대로 반환
+	UFUNCTION(BlueprintCallable, Category = "Gimmick|Shield")
+	int32 ProcessIncomingDamage(int32 RawDamage);
+
 	// UI가 스택 변화를 구독
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick|Shield")
 	FOnShieldStackChanged OnShieldStackChanged;
 
 protected:
-
+	virtual void BeginPlay() override;
 };
