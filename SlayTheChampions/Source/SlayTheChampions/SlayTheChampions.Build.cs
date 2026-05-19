@@ -7,23 +7,12 @@ public class SlayTheChampions : ModuleRules
 	public SlayTheChampions(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+	
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core",
-			"CoreUObject",
-			"Engine",
-			"InputCore",
-			"EnhancedInput",
-			 "UMG",        // UserWidget, UImage, UTextBlock
-			"Slate",      // 추가
-			"SlateCore",
-            "Paper2D"     // UPaperSprite 사용을 위해 추가
-		});
-
-
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTags","UMG" });
 
 		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
