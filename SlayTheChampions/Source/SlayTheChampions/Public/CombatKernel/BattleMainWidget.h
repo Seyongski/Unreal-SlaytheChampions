@@ -2,8 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "CardDataTypes.h"
+#include "CardWidget.h"
 #include "CombatKernel/WidgetCardsStruct.h"
-#include "CombatKernel/CardWidget.h"
 #include "BattleMainWidget.generated.h"
 
 UCLASS()
@@ -37,7 +38,7 @@ public:
 	int32 MaxCost = 3;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AddCard(const FCardStruct& InCardData);
+	void AddCard(const FCardDataRow& InCardData);
 
 	UFUNCTION()
 	void OrganizeCards(float OffsetX);
@@ -46,13 +47,13 @@ public:
 	void FN_GetScreenInfo(float InBottomMargin, float InCardHeight, float& OutBottomPadding, float& OutCenterOfScreen);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Combat")
-	void OnCardExecuted(const FCardStruct& Card);
-	void OnCardExecuted_Implementation(const FCardStruct& Card);
+	void OnCardExecuted(const FCardDataRow& Card);
+	void OnCardExecuted_Implementation(const FCardDataRow& Card);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
 	void OnCostChanged(int32 Current, int32 Max);
 
-private:
-	UFUNCTION()
-	void HandleCardClicked(UCardWidget* Widget, const FCardStruct& Card);
+	// 카드 클릭 시 BP 또는 외부에서 직접 호출
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void HandleCardClicked(UCardWidget* Widget, const FCardDataRow& Card);
 };
