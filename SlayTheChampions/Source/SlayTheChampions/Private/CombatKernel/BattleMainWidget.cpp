@@ -2,7 +2,6 @@
 #include "CardWidget.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
-#include "CombatKernel/WidgetCardsStruct.h"
 
 void UBattleMainWidget::AddCard(const FCardDataRow& InCardData)
 {

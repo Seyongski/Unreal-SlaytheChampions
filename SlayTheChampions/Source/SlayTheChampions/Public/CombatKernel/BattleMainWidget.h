@@ -4,8 +4,24 @@
 #include "Blueprint/UserWidget.h"
 #include "CardDataTypes.h"
 #include "CardWidget.h"
-#include "CombatKernel/WidgetCardsStruct.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "BattleMainWidget.generated.h"
+
+USTRUCT(BlueprintType)
+struct FWidgetCardsStruct
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCardWidget* CardWidget = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCanvasPanel* Canvas = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCanvasPanelSlot* CardSlot = nullptr;
+};
 
 UCLASS()
 class SLAYTHECHAMPIONS_API UBattleMainWidget : public UUserWidget
