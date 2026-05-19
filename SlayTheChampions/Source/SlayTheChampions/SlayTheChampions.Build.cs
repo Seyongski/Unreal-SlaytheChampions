@@ -13,9 +13,12 @@ public class SlayTheChampions : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			 "UMG",        // 추가 - UserWidget, UImage, UTextBlock
+			 "UMG",        // UserWidget, UImage, UTextBlock
 			"Slate",      // 추가
-			"SlateCore"   });
+			"SlateCore",
+            "Paper2D"     // UPaperSprite 사용을 위해 추가
+		});
+
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

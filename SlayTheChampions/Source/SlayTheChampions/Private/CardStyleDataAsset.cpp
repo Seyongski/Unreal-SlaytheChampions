@@ -1,27 +1,21 @@
 #include "CardStyleDataAsset.h"
 
-UTexture2D* UCardStyleDataAsset::GetBorderImage(ECardRarity Rarity) const
+UPaperSprite* UCardStyleDataAsset::GetRarityBorder(ECardRarity Rarity) const
 {
     switch (Rarity)
     {
-    case ECardRarity::Rare:
-        return BorderImage_Rare.LoadSynchronous();
-    case ECardRarity::Legendary:
-        return BorderImage_Legendary.LoadSynchronous();
-    default:
-        return BorderImage_Normal.LoadSynchronous();
+    case ECardRarity::Rare:      return RarityBorder_Rare.LoadSynchronous();
+    case ECardRarity::Legendary: return RarityBorder_Legendary.LoadSynchronous();
+    default:                     return RarityBorder_Normal.LoadSynchronous();
     }
 }
 
-UTexture2D* UCardStyleDataAsset::GetGemImage(ECardRarity Rarity) const
+UPaperSprite* UCardStyleDataAsset::GetTypeBackground(ECardRarity Rarity) const
 {
     switch (Rarity)
     {
-    case ECardRarity::Rare:
-        return GemImage_Rare.LoadSynchronous();
-    case ECardRarity::Legendary:
-        return GemImage_Legendary.LoadSynchronous();
-    default:
-        return GemImage_Normal.LoadSynchronous();
+    case ECardRarity::Rare:      return TypeBackground_Rare.LoadSynchronous();
+    case ECardRarity::Legendary: return TypeBackground_Legendary.LoadSynchronous();
+    default:                     return TypeBackground_Normal.LoadSynchronous();
     }
 }
