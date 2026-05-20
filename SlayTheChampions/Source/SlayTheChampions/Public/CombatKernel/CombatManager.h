@@ -4,8 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "CombatManager.generated.h"
 
-class UCombatStatComponent;
-class ACombatantActor;
+class UStatComponent;
+class AUnit;
 class UBoxComponent;
 
 USTRUCT(BlueprintType)
@@ -16,6 +16,7 @@ struct FCombatantInitData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	int32 MaxHP = 100;
 
+	// [임시] UStatComponent에 방어도가 생기면 주입 로직 추가 후 이 주석 제거
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	int32 Defence = 0;
 };
@@ -30,10 +31,10 @@ public:
 
 	// ── 스폰 클래스 ───────────────────────────────────────────────
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
-	TSubclassOf<ACombatantActor> PlayerClass;
+	TSubclassOf<AUnit> PlayerClass;
 
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
-	TSubclassOf<ACombatantActor> EnemyClass;
+	TSubclassOf<AUnit> EnemyClass;
 
 	// ── 스폰 수 ──────────────────────────────────────────────────
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup", meta = (ClampMin = "1", ClampMax = "2"))
@@ -59,36 +60,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat|EnemyData")
 	FCombatantInitData EnemyData_2;
 
-	// ── 슬롯 위치 마커 (BP 컴포넌트 패널에서 이동 가능) ───────────
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
-	USceneComponent* PlayerSlot_0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
-	USceneComponent* PlayerSlot_1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
-	USceneComponent* EnemySlot_0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
-	USceneComponent* EnemySlot_1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
-	USceneComponent* EnemySlot_2;
-
-	// ── 에디터 전용 시각화 박스 (인게임 숨김) ─────────────────────
-	UPROPERTY(VisibleAnywhere, Category = "Combat|Slots")
+	// ── 스폰 위치 박스 (에디터에서 직접 이동하여 위치 조정) ─────────
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* PlayerBox_0;
 
-	UPROPERTY(VisibleAnywhere, Category = "Combat|Slots")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* PlayerBox_1;
 
-	UPROPERTY(VisibleAnywhere, Category = "Combat|Slots")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* EnemyBox_0;
 
-	UPROPERTY(VisibleAnywhere, Category = "Combat|Slots")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* EnemyBox_1;
 
-	UPROPERTY(VisibleAnywhere, Category = "Combat|Slots")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* EnemyBox_2;
 
 	// ── 런타임 조회 ───────────────────────────────────────────────
@@ -96,26 +81,28 @@ public:
 	void InitCombat();
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
-	UCombatStatComponent* GetPlayerStat(int32 Index) const;
+	UStatComponent* GetPlayerStat(int32 Index) const;
 
 	UFUNCTION(BlueprintPure, Category = "Combat")
-	UCombatStatComponent* GetEnemyStat(int32 Index) const;
+	UStatComponent* GetEnemyStat(int32 Index) const;
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	UPROPERTY()
-	TArray<ACombatantActor*> SpawnedPlayers;
+	TArray<AUnit*> SpawnedPlayers;
 
 	UPROPERTY()
-	TArray<ACombatantActor*> SpawnedEnemies;
+	TArray<AUnit*> SpawnedEnemies;
 
-	void SetupSlot(USceneComponent*& OutSlot, UBoxComponent*& OutBox,
-	               const FName& SlotName, const FName& BoxName,
-	               const FVector& RelativeLocation, const FColor& Color);
+	// 박스 컴포넌트 생성 및 루트에 부착
+	UBoxComponent* SetupBox(const FName& BoxName,
+	                        const FVector& RelativeLocation,
+	                        const FColor& Color);
 
-	ACombatantActor* SpawnCombatant(TSubclassOf<ACombatantActor> ActorClass,
-	                                USceneComponent* Slot,
-	                                const FCombatantInitData& Data);
+	// 박스 위치를 기준으로 유닛 스폰
+	AUnit* SpawnCombatant(TSubclassOf<AUnit> ActorClass,
+	                      UBoxComponent* Box,
+	                      const FCombatantInitData& Data);
 };

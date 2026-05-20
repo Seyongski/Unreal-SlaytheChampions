@@ -1,6 +1,6 @@
 #include "CombatKernel/CombatManager.h"
-#include "CombatKernel/CombatantActor.h"
-#include "CombatKernel/CombatStatComponent.h"
+#include "Unit/Unit.h"
+#include "Unit/StatComponent.h"
 #include "Components/BoxComponent.h"
 
 ACombatManager::ACombatManager()
@@ -10,30 +10,28 @@ ACombatManager::ACombatManager()
 	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
-	// 플레이어 슬롯 (파란색)
-	SetupSlot(PlayerSlot_0, PlayerBox_0, TEXT("PlayerSlot_0"), TEXT("PlayerBox_0"), FVector(   0.f, -300.f, 0.f), FColor::Blue);
-	SetupSlot(PlayerSlot_1, PlayerBox_1, TEXT("PlayerSlot_1"), TEXT("PlayerBox_1"), FVector(-150.f, -300.f, 0.f), FColor::Blue);
+	// 플레이어 박스 (파란색) - 에디터에서 직접 이동하여 스폰 위치 조정
+	PlayerBox_0 = SetupBox(TEXT("PlayerBox_0"), FVector(   0.f, -300.f, 0.f), FColor::Blue);
+	PlayerBox_1 = SetupBox(TEXT("PlayerBox_1"), FVector(-150.f, -300.f, 0.f), FColor::Blue);
 
-	// 적 슬롯 (빨간색)
-	SetupSlot(EnemySlot_0, EnemyBox_0, TEXT("EnemySlot_0"), TEXT("EnemyBox_0"), FVector(   0.f, 300.f, 0.f), FColor::Red);
-	SetupSlot(EnemySlot_1, EnemyBox_1, TEXT("EnemySlot_1"), TEXT("EnemyBox_1"), FVector(-150.f, 300.f, 0.f), FColor::Red);
-	SetupSlot(EnemySlot_2, EnemyBox_2, TEXT("EnemySlot_2"), TEXT("EnemyBox_2"), FVector( 150.f, 300.f, 0.f), FColor::Red);
+	// 적 박스 (빨간색) - 에디터에서 직접 이동하여 스폰 위치 조정
+	EnemyBox_0 = SetupBox(TEXT("EnemyBox_0"), FVector(   0.f, 300.f, 0.f), FColor::Red);
+	EnemyBox_1 = SetupBox(TEXT("EnemyBox_1"), FVector(-150.f, 300.f, 0.f), FColor::Red);
+	EnemyBox_2 = SetupBox(TEXT("EnemyBox_2"), FVector( 150.f, 300.f, 0.f), FColor::Red);
 }
 
-void ACombatManager::SetupSlot(USceneComponent*& OutSlot, UBoxComponent*& OutBox,
-                                const FName& SlotName, const FName& BoxName,
-                                const FVector& RelativeLocation, const FColor& Color)
+UBoxComponent* ACombatManager::SetupBox(const FName& BoxName,
+                                         const FVector& RelativeLocation,
+                                         const FColor& Color)
 {
-	OutSlot = CreateDefaultSubobject<USceneComponent>(SlotName);
-	OutSlot->SetupAttachment(GetRootComponent());
-	OutSlot->SetRelativeLocation(RelativeLocation);
-
-	OutBox = CreateDefaultSubobject<UBoxComponent>(BoxName);
-	OutBox->SetupAttachment(OutSlot);
-	OutBox->SetBoxExtent(FVector(40.f, 40.f, 80.f));
-	OutBox->ShapeColor = Color;
-	OutBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	OutBox->SetHiddenInGame(true);
+	UBoxComponent* Box = CreateDefaultSubobject<UBoxComponent>(BoxName);
+	Box->SetupAttachment(GetRootComponent());
+	Box->SetRelativeLocation(RelativeLocation);
+	Box->SetBoxExtent(FVector(40.f, 40.f, 80.f));
+	Box->ShapeColor = Color;
+	Box->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Box->SetHiddenInGame(true);
+	return Box;
 }
 
 void ACombatManager::BeginPlay()
@@ -47,62 +45,68 @@ void ACombatManager::InitCombat()
 	SpawnedPlayers.Empty();
 	SpawnedEnemies.Empty();
 
-	USceneComponent* PlayerSlots[] = { PlayerSlot_0, PlayerSlot_1 };
+	UBoxComponent* PlayerBoxes[] = { PlayerBox_0, PlayerBox_1 };
 	FCombatantInitData PlayerDataArr[] = { PlayerData_0, PlayerData_1 };
 
 	const int32 ClampedPlayerCount = FMath::Clamp(PlayerCount, 1, 2);
 	for (int32 i = 0; i < ClampedPlayerCount; i++)
 	{
-		ACombatantActor* Actor = SpawnCombatant(PlayerClass, PlayerSlots[i], PlayerDataArr[i]);
+		AUnit* Actor = SpawnCombatant(PlayerClass, PlayerBoxes[i], PlayerDataArr[i]);
 		if (Actor)
 		{
 			SpawnedPlayers.Add(Actor);
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Player[%d] spawned at %s"), i, *PlayerSlots[i]->GetComponentLocation().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Player[%d] spawned at %s"), i, *PlayerBoxes[i]->GetComponentLocation().ToString());
 		}
 	}
 
-	USceneComponent* EnemySlots[] = { EnemySlot_0, EnemySlot_1, EnemySlot_2 };
+	UBoxComponent* EnemyBoxes[] = { EnemyBox_0, EnemyBox_1, EnemyBox_2 };
 	FCombatantInitData EnemyDataArr[] = { EnemyData_0, EnemyData_1, EnemyData_2 };
 
 	const int32 ClampedEnemyCount = FMath::Clamp(EnemyCount, 1, 3);
 	for (int32 i = 0; i < ClampedEnemyCount; i++)
 	{
-		ACombatantActor* Actor = SpawnCombatant(EnemyClass, EnemySlots[i], EnemyDataArr[i]);
+		AUnit* Actor = SpawnCombatant(EnemyClass, EnemyBoxes[i], EnemyDataArr[i]);
 		if (Actor)
 		{
 			SpawnedEnemies.Add(Actor);
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Enemy[%d] spawned at %s"), i, *EnemySlots[i]->GetComponentLocation().ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Enemy[%d] spawned at %s"), i, *EnemyBoxes[i]->GetComponentLocation().ToString());
 		}
 	}
 }
 
-ACombatantActor* ACombatManager::SpawnCombatant(TSubclassOf<ACombatantActor> ActorClass,
-                                                 USceneComponent* Slot,
-                                                 const FCombatantInitData& Data)
+AUnit* ACombatManager::SpawnCombatant(TSubclassOf<AUnit> ActorClass,
+                                      UBoxComponent* Box,
+                                      const FCombatantInitData& Data)
 {
-	if (!ActorClass || !Slot) return nullptr;
+	if (!ActorClass || !Box) return nullptr;
 
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	ACombatantActor* Actor = GetWorld()->SpawnActor<ACombatantActor>(ActorClass, Slot->GetComponentTransform(), Params);
+	// 박스의 월드 트랜스폼을 스폰 위치로 사용
+	AUnit* Actor = GetWorld()->SpawnActor<AUnit>(ActorClass, Box->GetComponentTransform(), Params);
 	if (!Actor) return nullptr;
 
-	Actor->StatComponent->MaxHP     = Data.MaxHP;
-	Actor->StatComponent->CurrentHP = Data.MaxHP;
-	Actor->StatComponent->Defence   = Data.Defence;
+	// StatComponent는 Blueprint에서 추가되므로 없을 수 있음
+	UStatComponent* Stat = Actor->GetStat();
+	if (Stat)
+	{
+		Stat->MaxHP     = Data.MaxHP;
+		Stat->CurrentHP = Data.MaxHP;
+		// [임시] Defence 주입은 UStatComponent에 방어도 추가 후 처리
+	}
 
 	return Actor;
 }
 
-UCombatStatComponent* ACombatManager::GetPlayerStat(int32 Index) const
+UStatComponent* ACombatManager::GetPlayerStat(int32 Index) const
 {
 	if (!SpawnedPlayers.IsValidIndex(Index) || !SpawnedPlayers[Index]) return nullptr;
-	return SpawnedPlayers[Index]->StatComponent;
+	return SpawnedPlayers[Index]->GetStat();
 }
 
-UCombatStatComponent* ACombatManager::GetEnemyStat(int32 Index) const
+UStatComponent* ACombatManager::GetEnemyStat(int32 Index) const
 {
 	if (!SpawnedEnemies.IsValidIndex(Index) || !SpawnedEnemies[Index]) return nullptr;
-	return SpawnedEnemies[Index]->StatComponent;
+	return SpawnedEnemies[Index]->GetStat();
 }
