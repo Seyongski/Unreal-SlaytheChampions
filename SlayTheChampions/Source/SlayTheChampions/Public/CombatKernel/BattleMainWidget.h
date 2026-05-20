@@ -35,6 +35,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UCanvasPanel* MainCanvas;
 
+	// 손패 카드가 배치될 캔버스 (WBP_BattleMainWidget 디자이너에서 위치 지정)
+	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* HandCanvas;
+
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UCardWidget> NewCard;
 
@@ -67,7 +71,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void AddCard(const FCardDataRow& InCardData);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OrganizeCards(float OffsetX);
 
 	UFUNCTION()

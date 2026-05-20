@@ -1,6 +1,9 @@
 #include "CombatKernel/CombatManager.h"
+#include "CombatKernel/EffectManager.h"
+#include "CombatKernel/BlockEffect.h"
 #include "Unit/Unit.h"
 #include "Unit/StatComponent.h"
+#include "Unit/StatusEffectComponent.h"
 #include "Components/BoxComponent.h"
 
 ACombatManager::ACombatManager()
@@ -128,6 +131,7 @@ void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex)
 			break;
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("[ExecuteCard] Targets=%d Damage=%d"), Targets.Num(), Card.Damage);
 	// 효과 실행
 	for (AUnit* Target : Targets)
 	{
@@ -140,15 +144,62 @@ void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex)
 		if (Card.Damage > 0)
 		{
 			for (int32 i = 0; i < Card.UsingCount; i++)
-				Stat->TakeDamage(Card.Damage, Caster);
+				ApplyDamageWithBlock(Target, Card.Damage, Caster);
 		}
 
 		// 회복
 		if (Card.HealAmount > 0)
 			Stat->Heal(Card.HealAmount);
 
-		// [임시] Block — UStatComponent에 방어도 추가 시 구현
+		// 방어도
+		if (Card.Block > 0)
+			UEffectManager::ApplyEffect(Target, EEffectType::Block, Card.Block);
+
 		// [임시] EffectTag — StatusEffectComponent 연결 시 구현
+	}
+}
+
+void ACombatManager::ApplyDamageWithBlock(AUnit* Target, int32 Damage, AUnit* Attacker)
+{
+	if (!Target || Damage <= 0) return;
+
+	UStatusEffectComponent* SEC = Target->FindComponentByClass<UStatusEffectComponent>();
+	if (SEC)
+	{
+		UStatusEffect* BlockEff = SEC->FindEffect(UBlockEffect::StaticClass());
+		if (BlockEff && BlockEff->Stacks > 0)
+		{
+			const int32 Absorbed = FMath::Min(BlockEff->Stacks, Damage);
+			BlockEff->Stacks -= Absorbed;
+			Damage -= Absorbed;
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Block 흡수=%d 남은Block=%d 남은Damage=%d"), Absorbed, BlockEff->Stacks, Damage);
+		}
+	}
+
+	if (Damage <= 0) return;
+
+	UStatComponent* Stat = Target->GetStat();
+	if (Stat)
+		Stat->TakeDamage(Damage, Attacker);
+}
+
+void ACombatManager::OnTurnStart()
+{
+	TArray<AUnit*> AllUnits;
+	AllUnits.Append(SpawnedPlayers);
+	AllUnits.Append(SpawnedEnemies);
+
+	for (AUnit* Unit : AllUnits)
+	{
+		if (!Unit) continue;
+		UStatusEffectComponent* SEC = Unit->FindComponentByClass<UStatusEffectComponent>();
+		if (!SEC) continue;
+
+		for (UStatusEffect* Effect : SEC->Active)
+		{
+			if (Effect)
+				Effect->OnTurnEnd();
+		}
 	}
 }
 

@@ -24,22 +24,25 @@ void UBattleMainWidget::NativeConstruct()
 void UBattleMainWidget::AddCard(const FCardDataRow& InCardData)
 {
 	UCardWidget* LocalWidgetCard = CreateWidget<UCardWidget>(GetOwningPlayer(), NewCard);
-	if (!LocalWidgetCard || !MainCanvas) return;
+	if (!LocalWidgetCard || !HandCanvas) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("[AddCard] Cost=%d Damage=%d Heal=%d Draw=%d"), InCardData.Cost, InCardData.Damage, InCardData.HealAmount, InCardData.DrawCount);
 
 	LocalWidgetCard->SetCardData(InCardData, nullptr);
 
-	UCanvasPanelSlot* CanvasSlot = MainCanvas->AddChildToCanvas(LocalWidgetCard);
+	UCanvasPanelSlot* CanvasSlot = HandCanvas->AddChildToCanvas(LocalWidgetCard);
 	if (CanvasSlot) CanvasSlot->SetAutoSize(true);
 
 	FWidgetCardsStruct NewEntry;
 	NewEntry.CardWidget = LocalWidgetCard;
-	NewEntry.Canvas     = MainCanvas;
+	NewEntry.Canvas     = HandCanvas;
 	NewEntry.CardSlot   = CanvasSlot;
 	WidgetCards.Add(NewEntry);
 }
 
 void UBattleMainWidget::OnCardExecuted_Implementation(const FCardDataRow& Card)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[OnCardExecuted] CombatManager=%s Damage=%d"), CombatManager ? TEXT("OK") : TEXT("NULL"), Card.Damage);
 	// 카드 효과 실행 (CombatManager에 위임)
 	if (CombatManager)
 		CombatManager->ExecuteCard(Card, 0);
@@ -54,6 +57,7 @@ void UBattleMainWidget::OnCardExecuted_Implementation(const FCardDataRow& Card)
 
 void UBattleMainWidget::HandleCardClicked(UCardWidget* Widget, const FCardDataRow& Card)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[HandleCardClicked] Cost=%d SharedCost=%d CombatManager=%s"), Card.Cost, SharedCost, CombatManager ? TEXT("OK") : TEXT("NULL"));
 	if (SharedCost < Card.Cost) return;
 
 	const int32 RemoveIndex = WidgetCards.IndexOfByPredicate([&](const FWidgetCardsStruct& Entry)

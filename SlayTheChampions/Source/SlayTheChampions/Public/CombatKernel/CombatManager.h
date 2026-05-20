@@ -91,10 +91,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void ExecuteCard(const FCardDataRow& Card, int32 CasterIndex);
 
+	// 턴 시작 시 호출 - 모든 유닛 효과 리셋
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void OnTurnStart();
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
+	// Block 흡수 후 남은 데미지를 TakeDamage로 전달
+	void ApplyDamageWithBlock(AUnit* Target, int32 Damage, AUnit* Attacker);
 	UPROPERTY()
 	TArray<AUnit*> SpawnedPlayers;
 

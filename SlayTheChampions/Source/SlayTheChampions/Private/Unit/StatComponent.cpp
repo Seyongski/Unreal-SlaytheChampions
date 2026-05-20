@@ -17,18 +17,20 @@ UStatComponent::UStatComponent()
 
 void UStatComponent::TakeDamage(int32 Damage, AUnit* Instigator)
 {
-	//µ¥¹ÌÁö°¡ µé¾î¿Í HP°¡ ´Ù´Â ÇÔ¼ö ±¸ÇöºÎ
-	//µ¥¹ÌÁö 0ÀÌ°Å³ª ÇöÀç HP°¡ 0ÀÌÇÏÀÌ¸é ¸®ÅÏ
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ HPï¿½ï¿½ ï¿½Ù´ï¿½ ï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½Ì°Å³ï¿½ ï¿½ï¿½ï¿½ï¿½ HPï¿½ï¿½ 0ï¿½ï¿½ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ï¿½
 	if (Damage <= 0 || CurrentHP <= 0) return;
 
-	//HP Â÷°¨
+	//HP ï¿½ï¿½ï¿½ï¿½
 	const int32 OldHP = CurrentHP;
 	CurrentHP = FMath::Max(0, CurrentHP - Damage);
 
-	//ºê·ÎµåÄ³½ºÆ®
+	UE_LOG(LogTemp, Warning, TEXT("[StatComponent] TakeDamage=%d HP: %d -> %d"), Damage, OldHP, CurrentHP);
+
+	//ï¿½ï¿½Õ¥ë‹”Ä³ï¿½ï¿½Æ®
 	OnHPChanged.Broadcast(OldHP, CurrentHP);
 
-	//HP°¡ 0ÀÌ¶ó¸é
+	//HPï¿½ï¿½ 0ï¿½Ì¶ï¿½ï¿½
 	if (CurrentHP <= 0)
 	{
 		if (AUnit* Unit = Cast<AUnit>(GetOwner()))
@@ -40,8 +42,8 @@ void UStatComponent::TakeDamage(int32 Damage, AUnit* Instigator)
 
 void UStatComponent::Heal(int32 Amount)
 {
-	//ÈúÀÌ µé¾î¿Í Ã¼·ÂÀÌ Â÷´Â ÇÔ¼ö ±¸ÇöºÎ
-	//Èú·®ÀÌ 0ÀÌ°Å³ª, ÇöÀçÃ¼·ÂÀÌ 0ÀÌ°Å³ª, ÃÖ´ëÃ¼·Â ÀÌ»óÀÏ¶§
+	//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã¼ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½Ì°Å³ï¿½, ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ 0ï¿½Ì°Å³ï¿½, ï¿½Ö´ï¿½Ã¼ï¿½ï¿½ ï¿½Ì»ï¿½ï¿½Ï¶ï¿½
 	if (Amount <= 0 || CurrentHP <= 0 || CurrentHP >= MaxHP) return;
 
 	const int32 OldHP = CurrentHP;
