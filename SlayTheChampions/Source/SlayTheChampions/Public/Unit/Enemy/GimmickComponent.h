@@ -41,10 +41,35 @@ public:
 	// CombatManager가 호출
 	UFUNCTION(BlueprintCallable, Category = "Gimmick")
 	void OnTurnStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Gimmick")
+	void OnTurnEnd();
 		
+<<<<<<< Updated upstream
 	UFUNCTION(BlueprintCallable, Category = "Gimmick")
 	void OnTurnEnd();
 	
+=======
+
+	// ── Intent 보강 API (NPCBrainComponent가 PlanNextAction 마지막에 호출) ──
+/**
+ * 다음 턴에 발동할 기믹 정보를 Intent에 미리 추가한다.
+ * 패턴이 결정한 1차 Intent는 그대로 두고, GimmickWarning 필드만 채운다.
+ * 서브클래스에서 override.
+ */
+	virtual void AugmentIntent(FIntent& InOutIntent) const {}
+
+
+	/**
+	 * 다음 턴(TurnCounter + 1)에 기믹 페이즈가 발동할 예정인지 미리보기.
+	 * AugmentIntent 구현 보조용. 서브클래스에서 override.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Gimmick")
+	virtual bool WillTriggerNextTurn() const { return false; }
+
+
+
+>>>>>>> Stashed changes
 	// 외부 구독용 Delegate
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick")
 	FOnPhaseEntered OnPhaseEntered;
@@ -55,6 +80,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick")
 	FOnGimmickAnnounce OnGimmickAnnounce;
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 protected:
 	virtual void BeginPlay() override;
 
@@ -63,7 +92,12 @@ protected:
 	virtual void OnGimmickTurnStart() {}
 	virtual void OnGimmickTurnEnd() {}
 
+<<<<<<< Updated upstream
 	// StatComponent.OnHPChanged에 자동 바인딩됨
+=======
+	//StatComponent.OnHPChanged에 자동바인딩 는 아직 구현 x
+	/*
+>>>>>>> Stashed changes
 	UFUNCTION()
 	virtual void HandleHPChanged(int32 OldHP, int32 NewHP) {}
 

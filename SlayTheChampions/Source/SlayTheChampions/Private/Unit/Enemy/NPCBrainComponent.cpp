@@ -3,6 +3,7 @@
 
 #include "Unit/Enemy/NPCBrainComponent.h"
 #include "Unit/Enemy/EnemyPatternData.h"
+#include "Unit/Enemy/GimmickComponent.h"
 #include "Unit/Unit.h"
 #include "Unit/Enemy/IntentComponent.h"
 

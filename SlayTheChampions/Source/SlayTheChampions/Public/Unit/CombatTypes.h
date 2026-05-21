@@ -35,12 +35,20 @@ struct SLAYTHECHAMPIONS_API FIntent
 {
     GENERATED_BODY()
 
+    // ── 패턴이 결정하는 1차 의도 (모든 적 공통) ─────────────
     UPROPERTY(BlueprintReadOnly) EIntentKind Kind = EIntentKind::Unknown;
     UPROPERTY(BlueprintReadOnly) int32       Value = 0;  // 예상 데미지 or 블록량
     UPROPERTY(BlueprintReadOnly) int32       Hits = 1;
     UPROPERTY(BlueprintReadOnly) TWeakObjectPtr<AUnit> Target;
     UPROPERTY(BlueprintReadOnly) FText       DisplayText;
+
+    // ── 보스 기믹이 보강하는 추가 정보 (보스 전용, 선택) ───
+    /** 다음 턴에 기믹이 발동할 예정인지 여부. UI가 경고 아이콘 표시용으로 사용. */
+    UPROPERTY(BlueprintReadOnly) bool        bHasGimmickWarning = false;
+    /** 기믹 경고 텍스트 (예: "다음 턴 분노 발동", "방패 활성화 중") */
+    UPROPERTY(BlueprintReadOnly) FText       GimmickWarningText;
 };
+
 
 
 UENUM(BlueprintType)
@@ -95,3 +103,4 @@ struct SLAYTHECHAMPIONS_API FGimmickPhase
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FText           AnnounceText;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) bool            bOneShot = true; // true면 한 번만 발동
 };
+

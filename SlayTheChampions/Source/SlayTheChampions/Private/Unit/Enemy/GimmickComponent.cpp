@@ -12,6 +12,11 @@ UGimmickComponent::UGimmickComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+void UGimmickComponent::OnTurnEnd()
+{
+
+}
+
 void UGimmickComponent::BeginPlay()
 {
 	Super::BeginPlay();
