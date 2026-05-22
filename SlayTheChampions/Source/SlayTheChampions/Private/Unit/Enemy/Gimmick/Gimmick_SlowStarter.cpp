@@ -3,6 +3,11 @@
 
 #include "Unit/Enemy/Gimmick/Gimmick_SlowStarter.h"
 
+bool UGimmick_SlowStarter::WillTriggerNextTurn() const
+{
+	return bSleeping && GetPredictedTurn() >= SleepDuration;
+}
+
 void UGimmick_SlowStarter::OnGimmickTurnStart()
 {
 	if (bSleeping && TurnCounter >= SleepDuration)

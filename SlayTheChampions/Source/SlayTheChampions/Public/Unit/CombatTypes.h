@@ -245,25 +245,25 @@ struct SLAYTHECHAMPIONS_API FEnemyAction
     EIntentKind ResolveIntentKind() const;
 };
 
-UENUM(BlueprintType)
-enum class EGimmickTrigger : uint8
-{
-    HPThresholdBelow UMETA(DisplayName = "HP Below Threshold"), // HP가 X% 이하
-    TurnCountReached UMETA(DisplayName = "Turn Count Reached"), // N턴 경과
-    OnDamaged        UMETA(DisplayName = "On Damaged")          // 피격 시
-};
-
-USTRUCT(BlueprintType)
-struct SLAYTHECHAMPIONS_API FGimmickPhase
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) FName           PhaseName;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) EGimmickTrigger Trigger = EGimmickTrigger::HPThresholdBelow;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) float           TriggerValue = 0.5f; // HP면 0~1 비율, Turn이면 턴 수
-    //UPROPERTY(EditAnywhere, BlueprintReadOnly) UEnemyPatternData* SwapToPattern = nullptr;
-    //UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<TSubclassOf<UStatusEffect>> ApplyOnEnter;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) FText           AnnounceText;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) bool            bOneShot = true; // true면 한 번만 발동
-};
+//UENUM(BlueprintType)
+//enum class EGimmickTrigger : uint8
+//{
+//    HPThresholdBelow UMETA(DisplayName = "HP Below Threshold"), // HP가 X% 이하
+//    TurnCountReached UMETA(DisplayName = "Turn Count Reached"), // N턴 경과
+//    OnDamaged        UMETA(DisplayName = "On Damaged")          // 피격 시
+//};
+//
+//USTRUCT(BlueprintType)
+//struct SLAYTHECHAMPIONS_API FGimmickPhase
+//{
+//    GENERATED_BODY()
+//
+//    UPROPERTY(EditAnywhere, BlueprintReadOnly) FName           PhaseName;
+//    UPROPERTY(EditAnywhere, BlueprintReadOnly) EGimmickTrigger Trigger = EGimmickTrigger::HPThresholdBelow;
+//    UPROPERTY(EditAnywhere, BlueprintReadOnly) float           TriggerValue = 0.5f; // HP면 0~1 비율, Turn이면 턴 수
+//    //UPROPERTY(EditAnywhere, BlueprintReadOnly) UEnemyPatternData* SwapToPattern = nullptr;
+//    //UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<TSubclassOf<UStatusEffect>> ApplyOnEnter;
+//    UPROPERTY(EditAnywhere, BlueprintReadOnly) FText           AnnounceText;
+//    UPROPERTY(EditAnywhere, BlueprintReadOnly) bool            bOneShot = true; // true면 한 번만 발동
+//};
 

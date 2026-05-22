@@ -45,6 +45,12 @@ void UGimmick_Summoner::RegisterMinion(AUnit* Minion)
 	}
 }
 
+bool UGimmick_Summoner::WillTriggerNextTurn() const
+{
+	return !bHasSummoned
+		|| (!HasAliveMinion() && (TurnsSinceLastSummon + 1) >= SummonCooldown);
+}
+
 bool UGimmick_Summoner::HasAliveMinion() const
 {
 	return GetAliveMinionCount() > 0;

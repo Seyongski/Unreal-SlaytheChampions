@@ -45,6 +45,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Gimmick|Minion")
 	void RegisterMinion(AUnit* Minion);
 
+	virtual bool WillTriggerNextTurn() const override;
+
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick|Minion")
 	FOnMinionSpawnRequested OnMinionSpawnRequested;
 

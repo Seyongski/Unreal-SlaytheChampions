@@ -41,6 +41,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick|Sleep")
 	bool bWakeOnDamage = false;
 
+	virtual bool WillTriggerNextTurn() const override;
+
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick|Sleep")
 	FOnBossAwakened OnAwakened;
 

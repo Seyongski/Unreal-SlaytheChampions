@@ -4,6 +4,12 @@
 #include "Unit/Enemy/Gimmick/Gimmick_OverDamage.h"
 
 
+bool UGimmick_OverDamage::WillTriggerNextTurn() const
+{
+	const int32 T = GetPredictedTurn();
+	return CheckInterval > 0 && T > 0 && (T % CheckInterval == 0);
+}
+
 void UGimmick_OverDamage::OnGimmickTurnStart()
 {
 	// CheckInterval 턴마다 판정 (첫 구간은 TurnCounter == CheckInterval)

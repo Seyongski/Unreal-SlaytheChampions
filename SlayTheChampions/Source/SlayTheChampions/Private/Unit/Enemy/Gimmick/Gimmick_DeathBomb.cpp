@@ -4,6 +4,11 @@
 #include "Unit/Enemy/Gimmick/Gimmick_DeathBomb.h"
 
 
+bool UGimmick_DeathBomb::WillTriggerNextTurn() const
+{
+	return BombDamage > 0;
+}
+
 void UGimmick_DeathBomb::HandleHPChanged(int32 OldHP, int32 NewHP)
 {
 	if (NewHP < OldHP)

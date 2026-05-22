@@ -30,13 +30,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick|Curse")
 	FText InsertAnnounce;
 
+	virtual bool WillTriggerNextTurn() const override;
+
 	// 지금까지 삽입된 저주 수 (UI 표시용)
 	UPROPERTY(BlueprintReadOnly, Category = "Gimmick|Curse")
 	int32 TotalCursesInserted = 0;
 
+
 	// 덱 시스템이 구독
 	UPROPERTY(BlueprintAssignable, Category = "Gimmick|Curse")
 	FOnCurseInsertRequested OnCurseInsertRequested;
+
+
 
 protected:
 	virtual void OnGimmickTurnStart() override;

@@ -21,6 +21,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Gimmick|Bomb")
 	int32 BombDamage = 0;
 
+	virtual bool WillTriggerNextTurn() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick|Bomb")
 	FText DeathAnnounce;
 

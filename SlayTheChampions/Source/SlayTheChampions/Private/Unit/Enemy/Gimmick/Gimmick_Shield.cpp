@@ -33,4 +33,9 @@ int32 UGimmick_Shield::ProcessIncomingDamage(int32 RawDamage)
 	return 1;
 }
 
+bool UGimmick_Shield::WillTriggerNextTurn() const
+{
+	return HasShield();
+}
+
 
