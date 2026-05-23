@@ -20,6 +20,9 @@ private:
 	UFUNCTION()
 	void DebugReturnToMap();
 
+	UFUNCTION()
+	void DebugLogInitializedRelics();
+
 private:
 	/*디버그용*/
 	UPROPERTY(EditAnywhere, Category = "Debug")

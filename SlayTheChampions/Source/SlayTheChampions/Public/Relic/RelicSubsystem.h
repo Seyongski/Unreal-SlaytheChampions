@@ -30,7 +30,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
 	TArray<FName> GetAllRelicIDs() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
+	bool GetInitializedRelicData(FName InRelicID, FRelicRuntimeData& OutRelicData) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
+	TArray<FRelicRuntimeData> GetInitializedRelics() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Relic|Debug")
+	void LogInitializedRelics() const;
+
 	const FRelicDataRow* GetRelicDataRow(FName InRelicID) const;
+
+	void InitializeRelics();
 
 private:
 	UPROPERTY()
@@ -38,4 +49,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UDataTable> RelicEffectDataTable;
+
+	UPROPERTY()
+	TArray<FRelicRuntimeData> InitializedRelics;
+
+	TMap<FName, FRelicRuntimeData> InitializedRelicMap;
 };

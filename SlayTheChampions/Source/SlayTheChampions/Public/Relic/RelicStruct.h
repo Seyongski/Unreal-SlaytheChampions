@@ -7,7 +7,7 @@
 #include "RelicStruct.generated.h"
 
 UENUM(BlueprintType)
-enum class EEffectType : uint8
+enum class EEffectType_test : uint8
 {
 	None = 0 UMETA(DisplayName = "None"),
 	Shield = 1 UMETA(DisplayName = "Shield"),
@@ -126,7 +126,7 @@ struct FRelicEffectRow : public FTableRowBase
 	int32 Order = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EEffectType BuffType = EEffectType::None;
+	EEffectType_test BuffType = EEffectType_test::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 Value = 0;
@@ -153,7 +153,7 @@ struct FRelicEffectData
 	int32 Order = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EEffectType BuffType = EEffectType::None;
+	EEffectType_test BuffType = EEffectType_test::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 Value = 0;

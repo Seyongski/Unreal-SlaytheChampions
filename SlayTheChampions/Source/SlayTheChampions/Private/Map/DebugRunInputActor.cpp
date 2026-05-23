@@ -3,10 +3,12 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Map/RunSystem.h"
+#include "Relic/RelicSubsystem.h"
 
 ADebugRunInputActor::ADebugRunInputActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	AutoReceiveInput = EAutoReceiveInput::Player0;
 }
 
 void ADebugRunInputActor::BeginPlay()
@@ -20,6 +22,8 @@ void ADebugRunInputActor::BeginPlay()
 		if (InputComponent)
 		{
 			InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &ADebugRunInputActor::DebugReturnToMap);
+			InputComponent->BindKey(EKeys::Six, IE_Pressed, this, &ADebugRunInputActor::DebugLogInitializedRelics);
+			InputComponent->BindKey(EKeys::NumPadSix, IE_Pressed, this, &ADebugRunInputActor::DebugLogInitializedRelics);
 		}
 	}
 }
@@ -44,6 +48,17 @@ void ADebugRunInputActor::DebugReturnToMap()
 		if (URunSystem* RunSystem = GameInstance->GetSubsystem<URunSystem>())
 		{
 			RunSystem->AreaCleared();
+		}
+	}
+}
+
+void ADebugRunInputActor::DebugLogInitializedRelics()
+{
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (URelicSubsystem* RelicSubsystem = GameInstance->GetSubsystem<URelicSubsystem>())
+		{
+			RelicSubsystem->LogInitializedRelics();
 		}
 	}
 }
