@@ -10,48 +10,32 @@ class UDataTable;
 UCLASS()
 class SLAYTHECHAMPIONS_API URelicSubsystem : public UGameInstanceSubsystem
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Relic|Data")
-	void LoadRelicDataTable(UDataTable* InTable);
+    UFUNCTION(BlueprintCallable, Category = "Relic|Query")
+    bool GetCachedRelicData(FName InRelicID, FRelicRuntimeData& OutRelicData) const;
 
-	UFUNCTION(BlueprintCallable, Category = "Relic|Data")
-	void LoadRelicEffectDataTable(UDataTable* InTable);
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
-	bool GetRelicRuntimeData(FName InRelicID, FRelicRuntimeData& OutRelicData) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
-	TArray<FRelicEffectData> GetRelicEffectData(FName InRelicID) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
-	TArray<FName> GetAllRelicIDs() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
-	bool GetInitializedRelicData(FName InRelicID, FRelicRuntimeData& OutRelicData) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Query")
-	TArray<FRelicRuntimeData> GetInitializedRelics() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Relic|Debug")
-	void LogInitializedRelics() const;
-
-	const FRelicDataRow* GetRelicDataRow(FName InRelicID) const;
-
-	void InitializeRelics();
+    UFUNCTION(BlueprintCallable, Category = "Relic|Query")
+    TArray<FRelicRuntimeData> GetCachedRelics() const;
 
 private:
-	UPROPERTY()
-	TObjectPtr<UDataTable> RelicDataTable;
+    void RebuildRelicCache();
 
-	UPROPERTY()
-	TObjectPtr<UDataTable> RelicEffectDataTable;
+    static FRelicEffectData MakeRelicEffectData(const FRelicEffectRow& EffectRow);
 
-	UPROPERTY()
-	TArray<FRelicRuntimeData> InitializedRelics;
+    static void FillRelicRuntimeData(const FRelicDataRow& RelicRow, TArray<FRelicEffectData>&& Effects, FRelicRuntimeData& OutRelicData);
 
-	TMap<FName, FRelicRuntimeData> InitializedRelicMap;
+    UPROPERTY()
+    TObjectPtr<UDataTable> RelicInfoTable;
+
+    UPROPERTY()
+    TObjectPtr<UDataTable> RelicEffectsTable;
+
+    UPROPERTY()
+    TArray<FRelicRuntimeData> Relics;
+
+    TMap<FName, FRelicRuntimeData> Map_Relics;
 };
