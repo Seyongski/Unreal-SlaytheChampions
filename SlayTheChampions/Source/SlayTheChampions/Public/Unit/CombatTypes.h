@@ -17,7 +17,7 @@ enum class ETeam : uint8
     Neutral UMETA(DisplayName = "Neutral")
 };
 
-
+//hh
 // ──────────────────────────────────────────────
 //  적 행동의 "의도(Intent)" 종류.
 //  주의: 이 enum은 디자이너가 에디터에서 직접 고르는 값이 아니다.
