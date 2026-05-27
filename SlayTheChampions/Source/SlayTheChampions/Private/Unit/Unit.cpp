@@ -24,6 +24,17 @@ void AUnit::HandleDeath()
 	OnUnitDied.Broadcast(this);
 }
 
+//애니메이션 알림
+void AUnit::NotifyAttack(bool bIsSkill)
+{
+	OnUnitAttackNotified.Broadcast(bIsSkill);
+}
+
+void AUnit::NotifyMove(FVector WorldDestination)
+{
+	OnUnitMoveNotified.Broadcast(WorldDestination);
+}
+
 UStatComponent* AUnit::GetStat() const
 {
 	return FindComponentByClass<UStatComponent>();

@@ -16,10 +16,6 @@ class UStatComponent;
  */
 
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
-
-
-
 UCLASS()
 class SLAYTHECHAMPIONS_API AUnit : public APawn
 {
@@ -37,14 +33,39 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Unit")
 	ETeam Team = ETeam::Enemy;
 
+	// 사망 이벤트
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, AUnit*, Unit);
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitDied OnUnitDied;
-
-	//
+		
+	
 	UFUNCTION(BlueprintCallable, Category = "Unit")
 	void HandleDeath();
 
+	// 공격 알림 이벤트
+	// bisskill = false -> 일반공격 (Attack)
+	// bisskill = true -> 스킬공격 (Skill 몽타주)
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitAttackNotified, bool, bIsSkill);
+	UPROPERTY(BlueprintAssignable, Category = "Unit|Anim")
+	FOnUnitAttackNotified OnUnitAttackNotified;
+
+	//공격 애니메이션 재생 트리거
+	/*
+	* CombatManager::ExecuteCard() 직전에 호출
+	* @param bIsSKill true면 skill, false면 Attack몽타주 재생
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Unit|Anim")
+	void NotifyAttack(bool bIsSkill = false);
+
+	//이동 델리게이트
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitMoveNotified, FVector, Destination);
+	UPROPERTY(BlueprintAssignable, Category = "Unit|Anim")
+	FOnUnitMoveNotified OnUnitMoveNotified;
+
+	UFUNCTION(BlueprintCallable, Category = "Unit|Anim")
+	void NotifyMove(FVector WorldDestination);
+	
 	// StatComponent를 직접 저장하지 않고 Find로 가져옴
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
 	UStatComponent* GetStat() const;
@@ -53,6 +74,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
 	bool IsAlive() const;
 
+
+	
 	// StatComponent를 직접 저장하면 안 되는 이유: AUnit을 상속한 StatComponent를 가진다고 가정하는데,
 	// 나이나 서브클래스에 HP가 필요없는 유닛도 Unit을 베이스로 쓸 경우
 	// FindComponentByClass<>로 없으면 컴포넌트가 없는 경우 nullptr을 받아서 다르게 처리하면 됨
