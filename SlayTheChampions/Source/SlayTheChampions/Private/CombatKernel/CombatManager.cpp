@@ -143,7 +143,8 @@ AUnit* ACombatManager::SpawnCombatant(TSubclassOf<AUnit> ActorClass,
 }
 
 // 카드 데이터를 기반으로 타겟을 결정하고 데미지/회복/방어도 효과를 적용
-void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex)
+// TargetOverride가 있으면 SingleEnemy 타입에서 해당 유닛을 타겟으로 우선 사용
+void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex, AUnit* TargetOverride)
 {
 	if (!SpawnedPlayers.IsValidIndex(CasterIndex)) return;
 	AUnit* Caster = SpawnedPlayers[CasterIndex];
@@ -153,8 +154,9 @@ void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex)
 	switch (Card.TargetType)
 	{
 		case ETargetType::SingleEnemy:
-			// [임시] 선택 UI 없으므로 0번 적 고정
-			if (SpawnedEnemies.IsValidIndex(0)) Targets.Add(SpawnedEnemies[0]);
+			// 플레이어가 선택한 타겟 우선, 없으면 0번 적 고정
+			if (TargetOverride) Targets.Add(TargetOverride);
+			else if (SpawnedEnemies.IsValidIndex(0)) Targets.Add(SpawnedEnemies[0]);
 			break;
 		case ETargetType::AllEnemies:
 			Targets = SpawnedEnemies;
@@ -286,16 +288,21 @@ void ACombatManager::StartTurn()
 }
 
 // PlayerActionPhase에서만 동작. 사용한 카드를 ActionQueue에 추가
-void ACombatManager::QueuePlayerAction(const FCardDataRow& Card, int32 CasterIndex)
+void ACombatManager::QueuePlayerAction(const FCardDataRow& Card, int32 CasterIndex, FName CardRowName, AUnit* TargetOverride)
 {
 	if (CurrentPhase != ETurnPhase::PlayerActionPhase) return;
 
 	FQueuedAction Action;
-	Action.Card        = Card;
-	Action.CasterIndex = CasterIndex;
+	Action.Card           = Card;
+	Action.CasterIndex    = CasterIndex;
+	Action.CardRowName    = CardRowName;
+	Action.TargetOverride = TargetOverride;
 	ActionQueue.Add(Action);
 
-	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 큐 추가: %s (큐 크기=%d)"), *Card.CardID.ToString(), ActionQueue.Num());
+	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 큐 추가: %s Target=%s (큐 크기=%d)"),
+		*Card.CardID.ToString(),
+		TargetOverride ? *TargetOverride->GetName() : TEXT("default"),
+		ActionQueue.Num());
 }
 
 // 플레이어 행동 입력을 종료하고 큐 실행 페이즈로 전환
@@ -321,8 +328,28 @@ void ACombatManager::ExecuteNextAction()
 	FQueuedAction Action = ActionQueue[0];
 	ActionQueue.RemoveAt(0);
 
-	ExecuteCard(Action.Card, Action.CasterIndex);
+	// TargetOverride를 함께 전달해 SingleEnemy 카드에서 플레이어 선택 타겟을 적용
+	ExecuteCard(Action.Card, Action.CasterIndex, Action.TargetOverride);
+
+	// 카드 효과 실행 완료 후 DiscardPile(또는 ExhaustPile)로 이동
+	// CardRowName이 유효하면 Row Name 우선 사용 (CardID != Row Name인 DataTable 구성 대응)
+	if (SpawnedPlayers.IsValidIndex(Action.CasterIndex))
+	{
+		UCardUserComponent* CardComp = SpawnedPlayers[Action.CasterIndex]->FindComponentByClass<UCardUserComponent>();
+		if (CardComp)
+		{
+			const FName DiscardKey = Action.CardRowName.IsNone() ? Action.Card.CardID : Action.CardRowName;
+			CardComp->DiscardSpecificCard(DiscardKey);
+		}
+	}
+
 	OnActionExecuted.Broadcast(Action.Card);
+
+	// ActionDelay 후 다음 카드 자동 처리 (에디터 Combat|Timing에서 조정)
+	GetWorldTimerManager().SetTimer(
+		ActionTimerHandle,
+		this, &ACombatManager::ExecuteNextAction,
+		ActionDelay, false);
 }
 
 // PlayerExecutionPhase에서 남은 ActionQueue를 즉시 전부 실행하고 적 턴으로 전환 (애니메이션 스킵용)
@@ -376,8 +403,11 @@ void ACombatManager::ExecuteNextEnemyAction()
 	if (Brain)
 		ExecuteEnemyAction(Enemy, Brain->PendingAction);
 
-	// [임시] 애니메이션 시스템 연결 전까지 즉시 자동 진행
-	OnEnemyActionComplete();
+	// EnemyActionDelay 후 다음 적 자동 진행 (에디터 Combat|Timing에서 조정)
+	GetWorldTimerManager().SetTimer(
+		EnemyTimerHandle,
+		this, &ACombatManager::OnEnemyActionComplete,
+		EnemyActionDelay, false);
 }
 
 // 현재 적의 행동이 끝났을 때 호출. 다음 적으로 인덱스를 넘김

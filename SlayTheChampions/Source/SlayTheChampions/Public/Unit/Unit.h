@@ -8,6 +8,7 @@
 #include "Unit.generated.h"
 
 class UStatComponent;
+class UCapsuleComponent;
 
 /**
  * 전투에 참여하는 모든 유닛의 베이스 Pawn.
@@ -47,6 +48,11 @@ public:
 	// 이 유닛이 클릭될 때 브로드캐스트 (bGenerateClickEvents 활성화 필요)
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitClicked OnUnitClicked;
+
+	// 마우스 클릭 감지 전용 캡슐 — Visibility 채널만 Block해 클릭 반경을 넓힘
+	// BP에서 캡슐 크기(HalfHeight, Radius)를 유닛마다 조정 가능
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit")
+	UCapsuleComponent* ClickCapsule;
 
 	//
 	UFUNCTION(BlueprintCallable, Category = "Unit")

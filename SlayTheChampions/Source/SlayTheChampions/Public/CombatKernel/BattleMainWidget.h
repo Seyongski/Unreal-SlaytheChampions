@@ -11,6 +11,7 @@
 class ACombatManager;
 class UTextBlock;
 class AUnit;
+class UHandWidget;
 
 /**
  * UBattleMainWidget
@@ -51,14 +52,31 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
 	void OnPlayerSelected(AUnit* Unit);
 
-	// 손패 목록 변경 시 BP에 카드 데이터 전달 — BP에서 카드 위젯 생성/갱신
+	// 카드 선택 대기 진입 시 BP에 알림 (하이라이트 연출용)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
+	void OnCardPending(FName CardName);
+
+	// 카드 선택 대기 해제 시 BP에 알림 (하이라이트 제거용)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
+	void OnPendingCleared();
+
+	// 손패 목록 변경 시 HandWidget에 직접 전달
+	// BP에서 HandPanel(UHandWidget)을 연결해두면 자동으로 ShowHand 호출
 	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
 	void OnHandUpdated(const TArray<FCardDataRow>& Cards);
+
+	// 손패 패널 참조 (WBP에서 BindWidget 또는 BP에서 직접 할당)
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional), Category = "Hand")
+	UHandWidget* HandPanel;
 
 protected:
 	// 현재 턴 수 표시 텍스트 (BindWidget)
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Text_TurnCount;
+
+	// 남은 코스트 표시 텍스트 (BindWidgetOptional — WBP에서 Text_Cost 이름으로 추가)
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* Text_Cost;
 
 	virtual void NativeConstruct() override;
 
@@ -77,4 +95,25 @@ private:
 	// HandComponent::OnHandChanged 수신 → 카드 데이터 조회 후 OnHandUpdated 호출
 	UFUNCTION()
 	void HandleHandChanged(const TArray<FName>& CardNames);
+
+	// HandPanel::OnCardSelected 수신 → 코스트 검증 후 선택 대기 상태로 전환
+	UFUNCTION()
+	void HandleCardClicked(FName CardName);
+
+	// 적 유닛 클릭 시 호출 — PendingCard가 있으면 타겟으로 큐에 등록
+	UFUNCTION()
+	void HandleEnemyClicked(AUnit* Enemy);
+
+	// SpawnedEnemies 각각의 OnUnitClicked에 바인딩
+	void BindEnemyClickEvents();
+
+	// 카드+타겟 확정 후 큐 등록 + Hand 제거 + 코스트 차감을 처리하는 헬퍼
+	// CardRowName — RemoveFromHand/QueuePlayerAction에 사용할 Row Name (NAME_None이면 CardData.CardID 사용)
+	void QueueCardAction(const FCardDataRow& CardData, AUnit* TargetOverride, FName CardRowName = NAME_None);
+
+	// 적 선택을 기다리는 카드 이름 (IsNone이면 미선택 상태)
+	FName PendingCardName;
+
+	// PendingCardName에 대응하는 카드 전체 데이터
+	FCardDataRow PendingCardData;
 };

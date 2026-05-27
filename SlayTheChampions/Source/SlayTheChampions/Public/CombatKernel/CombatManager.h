@@ -41,6 +41,15 @@ struct FQueuedAction
 	// 카드를 사용한 플레이어 인덱스 (SpawnedPlayers 기준)
 	UPROPERTY()
 	int32 CasterIndex = 0;
+
+	// SingleEnemy 카드의 플레이어 지정 타겟 (nullptr이면 기본 0번 적 사용)
+	UPROPERTY()
+	AUnit* TargetOverride = nullptr;
+
+	// Hand/DiscardPile 조작에 사용할 DataTable Row Name
+	// CardID != Row Name인 DataTable 구성에서 DiscardSpecificCard 오류 방지용
+	UPROPERTY()
+	FName CardRowName;
 };
 
 /**
@@ -138,6 +147,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Slots")
 	UBoxComponent* EnemyBox_2;
 
+	// ── 딜레이 설정 ──────────────────────────────────────────────
+	// 플레이어 카드 한 장 실행 후 다음 카드까지 대기 시간 (초)
+	UPROPERTY(EditAnywhere, Category = "Combat|Timing", meta = (ClampMin = "0.0", ClampMax = "5.0"))
+	float ActionDelay = 0.5f;
+
+	// 적 한 명 행동 후 다음 적까지 대기 시간 (초)
+	UPROPERTY(EditAnywhere, Category = "Combat|Timing", meta = (ClampMin = "0.0", ClampMax = "5.0"))
+	float EnemyActionDelay = 0.8f;
+
 	// ── 턴 상태 ───────────────────────────────────────────────────
 	// 현재 턴 페이즈 (읽기 전용 — SetPhase()로만 변경)
 	UPROPERTY(BlueprintReadOnly, Category = "Turn")
@@ -170,8 +188,9 @@ public:
 
 	// ── 카드 효과 실행 ────────────────────────────────────────────
 	// 카드 데이터로 타겟을 결정하고 데미지·회복·Shield 효과를 적용
+	// TargetOverride가 설정된 경우 SingleEnemy 타입에서 해당 유닛을 타겟으로 사용
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void ExecuteCard(const FCardDataRow& Card, int32 CasterIndex);
+	void ExecuteCard(const FCardDataRow& Card, int32 CasterIndex, AUnit* TargetOverride = nullptr);
 
 	// ── 턴 함수 ───────────────────────────────────────────────────
 	// DrawPhase 시작: Shield 리셋 → 버프/디버프 tick → PlayerActionPhase
@@ -179,8 +198,10 @@ public:
 	void StartTurn();
 
 	// PlayerActionPhase: 사용한 카드를 ActionQueue에 추가
+	// CardRowName — Hand/DiscardPile 조작용 Row Name (NAME_None이면 Card.CardID 사용)
+	// TargetOverride — SingleEnemy 카드에서 플레이어가 직접 선택한 타겟
 	UFUNCTION(BlueprintCallable, Category = "Turn")
-	void QueuePlayerAction(const FCardDataRow& Card, int32 CasterIndex);
+	void QueuePlayerAction(const FCardDataRow& Card, int32 CasterIndex, FName CardRowName = NAME_None, AUnit* TargetOverride = nullptr);
 
 	// PlayerActionPhase 종료 → PlayerExecutionPhase 진입 후 큐 실행 시작
 	UFUNCTION(BlueprintCallable, Category = "Turn")
@@ -211,6 +232,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	const TArray<AUnit*>& GetSpawnedPlayers() const { return SpawnedPlayers; }
 
+	// 스폰된 적 유닛 목록 반환 (타겟 선택 등 외부 시스템에서 참조용)
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	const TArray<AUnit*>& GetSpawnedEnemies() const { return SpawnedEnemies; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -229,6 +254,12 @@ private:
 
 	// EnemyPhase에서 현재 행동 중인 적 인덱스
 	int32 CurrentEnemyIndex = 0;
+
+	// 플레이어 카드 실행 딜레이 타이머
+	FTimerHandle ActionTimerHandle;
+
+	// 적 행동 딜레이 타이머
+	FTimerHandle EnemyTimerHandle;
 
 	// 페이즈를 전환하고 CheckCombatEnd → OnPhaseChanged 브로드캐스트
 	void SetPhase(ETurnPhase NewPhase);

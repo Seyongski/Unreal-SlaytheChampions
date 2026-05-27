@@ -3,12 +3,23 @@
 
 #include "Unit/Unit.h"
 #include "Unit/StatComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AUnit::AUnit()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	// NotifyActorOnClicked 수신 조건: PlayerController BP에서 bEnableClickEvents = true 설정 필요
+
+	// 클릭 감지 전용 캡슐을 루트로 생성
+	// Visibility 채널만 Block — 물리/이동에는 영향 없이 마우스 클릭 반경만 확장
+	// 클릭 감지 전용 캡슐 — 크기는 BP에서 유닛마다 조정
+	ClickCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("ClickCapsule"));
+	SetRootComponent(ClickCapsule);
+	ClickCapsule->InitCapsuleSize(60.f, 100.f); // BP에서 유닛마다 덮어쓸 수 있는 기본값
+	ClickCapsule->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ClickCapsule->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ClickCapsule->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 }
 
 // Called when the game starts or when spawned
