@@ -352,6 +352,16 @@ void ACombatManager::ExecuteNextAction()
 		ActionDelay, false);
 }
 
+// ActionQueue 마지막 액션을 꺼내 반환. PlayerActionPhase 에서만 동작
+bool ACombatManager::PopLastPlayerAction(FQueuedAction& OutAction)
+{
+	if (CurrentPhase != ETurnPhase::PlayerActionPhase || ActionQueue.IsEmpty()) return false;
+
+	OutAction = ActionQueue.Last();
+	ActionQueue.RemoveAt(ActionQueue.Num() - 1);
+	return true;
+}
+
 // PlayerExecutionPhase에서 남은 ActionQueue를 즉시 전부 실행하고 적 턴으로 전환 (애니메이션 스킵용)
 void ACombatManager::SkipToEnd()
 {

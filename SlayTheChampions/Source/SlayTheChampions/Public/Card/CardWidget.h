@@ -57,6 +57,22 @@ public:
     UFUNCTION(BlueprintImplementableEvent, Category = "Card|UI")
     void OnCardDataSet(const FCardDataRow& InCardData);
 
+    // ── 호버 이벤트 ─────────────────────────────────────────────────────────
+
+    // 마우스가 카드 위에 올라왔을 때 — BP에서 위로 이동 + 확대 애니메이션 구현
+    UFUNCTION(BlueprintImplementableEvent, Category = "Card|Hover")
+    void OnCardHovered();
+
+    // 마우스가 카드를 벗어났을 때 — BP에서 원래 위치/크기 복귀 구현
+    UFUNCTION(BlueprintImplementableEvent, Category = "Card|Hover")
+    void OnCardUnhovered();
+
+protected:
+    // 마우스 진입 — OnCardHovered 호출
+    virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    // 마우스 이탈 — OnCardUnhovered 호출
+    virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
 protected:
     // ── 공통 이미지 (WBP_Card 에서 변수명 일치 배치 필수) ────────────────────
 

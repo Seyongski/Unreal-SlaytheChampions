@@ -20,6 +20,20 @@ static void ApplySpriteToImage(UImage* ImageWidget, UPaperSprite* Sprite)
     ImageWidget->SetBrush(Brush);
 }
 
+// 마우스가 카드 위에 올라오면 BP 호버 이벤트 호출
+void UCardWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+    Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+    OnCardHovered();
+}
+
+// 마우스가 카드를 벗어나면 BP 언호버 이벤트 호출
+void UCardWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+    Super::NativeOnMouseLeave(InMouseEvent);
+    OnCardUnhovered();
+}
+
 void UCardWidget::SetCardData(const FCardDataRow& InCardData, UCardStyleDataAsset* InStyle)
 {
     // 현재 카드 데이터 저장 (Blueprint 에서 읽기 가능)

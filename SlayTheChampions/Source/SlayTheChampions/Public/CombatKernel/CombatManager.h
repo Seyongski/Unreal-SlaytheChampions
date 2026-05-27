@@ -215,6 +215,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	void SkipToEnd();
 
+	// ActionQueue 마지막 액션을 꺼내 반환. 큐가 비어있으면 false
+	// BattleMainWidget 취소 버튼에서 카드를 손패로 되돌릴 때 사용
+	bool PopLastPlayerAction(FQueuedAction& OutAction);
+
+	// 현재 큐에 쌓인 액션 수 반환 (취소 버튼 가시성 제어용)
+	int32 GetActionQueueCount() const { return ActionQueue.Num(); }
+
 	// 적 행동 완료 후 호출 → 다음 적으로 인덱스 전진
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	void OnEnemyActionComplete();

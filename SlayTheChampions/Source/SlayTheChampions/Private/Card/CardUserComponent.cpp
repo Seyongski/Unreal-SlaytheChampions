@@ -192,6 +192,13 @@ bool UCardUserComponent::RemoveFromHand(FName CardName)
     return true;
 }
 
+void UCardUserComponent::AddToHand(FName CardName)
+{
+    // 큐 취소 시 카드를 손패로 되돌림 — DiscardPile/DrawPile 조작 없이 Hand 에만 추가
+    Hand.Add(CardName);
+    BroadcastHandChanged();
+}
+
 void UCardUserComponent::DiscardSpecificCard(FName CardName)
 {
     if (!DeckComponent) return;

@@ -1,19 +1,14 @@
 #include "CombatKernel/HandWidget.h"
-#include "Components/ScrollBox.h"
-#include "Components/Button.h"
+#include "Components/HorizontalBox.h"
+#include "Card/CardWidget.h"
 
-// 위젯 초기화: 버튼 클릭 이벤트 바인딩
-void UHandWidget::NativeConstruct()
+// PendingCardSource 카드의 스크린 중심 좌표 반환 (화살표 시작점 계산용)
+FVector2D UHandWidget::GetPendingCardScreenCenter() const
 {
-	Super::NativeConstruct();
-
-	// 취소 버튼 바인딩 (BindWidgetOptional이므로 null 체크 필요)
-	if (BtnCancel)
-		BtnCancel->OnClicked.AddDynamic(this, &UHandWidget::HandleCancelClicked);
-
-	// 다음 플레이어 버튼 바인딩
-	if (BtnNextPlayer)
-		BtnNextPlayer->OnClicked.AddDynamic(this, &UHandWidget::HandleNextPlayerClicked);
+	if (!PendingCardSource) return FVector2D::ZeroVector;
+	const FGeometry& Geo = PendingCardSource->GetCachedGeometry();
+	// GetAbsolutePosition() = 좌상단, AbsoluteSize * 0.5 = 중심 오프셋
+	return Geo.GetAbsolutePosition() + Geo.GetAbsoluteSize() * 0.5f;
 }
 
 // 손패 갱신: 기존 카드 제거 후 BP에 카드 데이터 전달
@@ -28,16 +23,4 @@ void UHandWidget::ClearHand()
 {
 	if (CardContainer)
 		CardContainer->ClearChildren();
-}
-
-// 취소 버튼 클릭 → 델리게이트 브로드캐스트
-void UHandWidget::HandleCancelClicked()
-{
-	OnCancelPressed.Broadcast();
-}
-
-// 다음 플레이어 버튼 클릭 → 델리게이트 브로드캐스트
-void UHandWidget::HandleNextPlayerClicked()
-{
-	OnNextPlayerPressed.Broadcast();
 }

@@ -10,6 +10,7 @@
 
 class ACombatManager;
 class UTextBlock;
+class UButton;
 class AUnit;
 class UHandWidget;
 
@@ -65,11 +66,23 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
 	void OnHandUpdated(const TArray<FCardDataRow>& Cards);
 
+	// 대기 카드 취소 — BP의 오버레이 버튼, 우클릭 등에서 직접 호출 가능
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	void CancelPendingCard();
+
+	// 현재 타겟 대기 상태 여부 — BP에서 화살표 오버레이 가시성 제어에 사용
+	UFUNCTION(BlueprintPure, Category = "Selection")
+	bool IsCardPending() const { return !PendingCardName.IsNone(); }
+
 	// 손패 패널 참조 (WBP에서 BindWidget 또는 BP에서 직접 할당)
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional), Category = "Hand")
 	UHandWidget* HandPanel;
 
 protected:
+	// 유닛 외 영역 클릭 시 대기 카드 취소 처리
+	// MainCanvas가 ESlateVisibility::Visible일 때만 동작
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 	// 현재 턴 수 표시 텍스트 (BindWidget)
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Text_TurnCount;
@@ -77,6 +90,18 @@ protected:
 	// 남은 코스트 표시 텍스트 (BindWidgetOptional — WBP에서 Text_Cost 이름으로 추가)
 	UPROPERTY(meta = (BindWidgetOptional))
 	UTextBlock* Text_Cost;
+
+	// 턴 종료 버튼 — 클릭 시 PlayerExecutionPhase로 전환
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* Btn_EndTurn;
+
+	// 다음 플레이어 버튼 — 클릭 시 다음 플레이어로 선택 전환 (핸드 표시 시 노출)
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* Btn_NextPlayer;
+
+	// 취소 버튼 — 마지막으로 큐에 올린 카드를 손패로 되돌림
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* Btn_Cancel;
 
 	virtual void NativeConstruct() override;
 
@@ -110,6 +135,21 @@ private:
 	// 카드+타겟 확정 후 큐 등록 + Hand 제거 + 코스트 차감을 처리하는 헬퍼
 	// CardRowName — RemoveFromHand/QueuePlayerAction에 사용할 Row Name (NAME_None이면 CardData.CardID 사용)
 	void QueueCardAction(const FCardDataRow& CardData, AUnit* TargetOverride, FName CardRowName = NAME_None);
+
+	// Btn_EndTurn 클릭 → CombatManager::EndPlayerActionPhase 호출
+	UFUNCTION()
+	void HandleEndTurnClicked();
+
+	// Btn_NextPlayer 클릭 → 다음 살아있는 플레이어로 선택 전환
+	UFUNCTION()
+	void HandleNextPlayerClicked();
+
+	// Btn_Cancel 클릭 → 마지막 큐 액션을 취소하고 카드를 손패로 되돌림
+	UFUNCTION()
+	void HandleCancelClicked();
+
+	// 다음 플레이어 인덱스를 찾아 HandlePlayerClicked 호출
+	void SelectNextPlayer();
 
 	// 적 선택을 기다리는 카드 이름 (IsNone이면 미선택 상태)
 	FName PendingCardName;
