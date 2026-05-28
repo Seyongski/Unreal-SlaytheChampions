@@ -33,18 +33,14 @@ public:
 	}
 
 	const int32 GetMaxGold() const { return MaxGold; }
-
 	const int32 GetGold() const { return Gold; }
-
 	const TArray<AUnit*> GetParty() const { return Party; }
-
 	const TArray<int32> GetDeck() const { return Deck; }
-
 	void SetMaxGold(int32 _MaxGold) { MaxGold = _MaxGold; }
-
-	void SetGold(int32 _Gold) { Gold = _Gold; }
-
+	void SetGold(int32 _Gold) {
+		Gold += _Gold; 
+		if (Gold >= MaxGold) Gold = MaxGold;
+	}
 	void SetParty(TArray<AUnit*> _Party) { Party = _Party; }
-
 	void SetDeck(TArray<int32> _Deck) { Deck = _Deck; }
 };
