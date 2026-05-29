@@ -51,7 +51,7 @@ FReply UCardWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const F
     {
         // 브로드캐스트 전에 자기 자신을 직접 등록 — CardID 검색 시 인덱스 0번이 잘못 선택되는 문제 방지
         OwningHandWidget->SetCardPendingDirect(this);
-        OwningHandWidget->OnCardSelected.Broadcast(CurrentCardData.CardID);
+        OwningHandWidget->OnCardSelected.Broadcast(CurrentCardData.CardID, this);
     }
     return FReply::Handled();
 }
@@ -74,6 +74,7 @@ void UCardWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 void UCardWidget::SetPendingState(bool bInPending)
 {
     bIsPendingState = bInPending;
+    OnPendingStateChanged(bInPending);
     if (bIsPendingState)
         OnCardHovered();
     else

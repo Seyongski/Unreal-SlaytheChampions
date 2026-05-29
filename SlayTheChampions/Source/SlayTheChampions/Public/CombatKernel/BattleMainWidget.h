@@ -71,6 +71,11 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
 	void OnHandUpdated(const TArray<FCardDataRow>& Cards);
 
+	// 손패 숨김 요청 — HandPanel C++ 바인딩 실패 시 BP 폴백
+	// WBP_BattleMainWidget에서 구현: HandPanel 위젯 참조로 PlayHideAnimation 호출
+	UFUNCTION(BlueprintImplementableEvent, Category = "Selection")
+	void OnHideHand();
+
 	// 대기 카드 취소 — BP의 오버레이 버튼, 우클릭 등에서 직접 호출 가능
 	UFUNCTION(BlueprintCallable, Category = "Selection")
 	void CancelPendingCard();
@@ -132,7 +137,7 @@ private:
 
 	// HandPanel::OnCardSelected 수신 → 코스트 검증 후 선택 대기 상태로 전환
 	UFUNCTION()
-	void HandleCardClicked(FName CardName);
+	void HandleCardClicked(FName CardName, UCardWidget* ClickedCard);
 
 	// 적 유닛 클릭 시 호출 — PendingCard가 있으면 타겟으로 큐에 등록
 	UFUNCTION()

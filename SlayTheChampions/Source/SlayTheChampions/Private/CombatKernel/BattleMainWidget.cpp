@@ -40,6 +40,8 @@ void UBattleMainWidget::NativeConstruct()
 	// 버튼 바인딩 및 초기 가시성 설정
 	if (Btn_EndTurn)
 		Btn_EndTurn->OnClicked.AddDynamic(this, &UBattleMainWidget::HandleEndTurnClicked);
+	else
+		UE_LOG(LogTemp, Error, TEXT("[BattleMainWidget] Btn_EndTurn is NULL — WBP 버튼 이름이 'Btn_EndTurn'인지 확인"));
 
 	if (Btn_NextPlayer)
 	{
@@ -87,6 +89,23 @@ void UBattleMainWidget::OnPhaseChanged(ETurnPhase NewPhase)
 		if (Text_Cost)
 			Text_Cost->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), SharedCost, MaxCost)));
 		OnCostChanged(SharedCost, MaxCost);
+	}
+	else if (NewPhase == ETurnPhase::PlayerExecutionPhase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] PlayerExecutionPhase | HandPanel=%s"),
+			HandPanel ? TEXT("valid") : TEXT("NULL"));
+		// 턴 종료 → 손패 숨김 및 플레이어 선택 해제
+		if (SelectedUnit)
+		{
+			UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
+			if (CardComp)
+				CardComp->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
+			SelectedUnit = nullptr;
+		}
+		if (Btn_NextPlayer) Btn_NextPlayer->SetVisibility(ESlateVisibility::Collapsed);
+		if (Btn_Back) Btn_Back->SetVisibility(ESlateVisibility::Collapsed);
+		if (CombatManager) CombatManager->OnCameraReturnToDefault.Broadcast();
+		OnReturnToMainScreen();
 	}
 }
 
@@ -157,10 +176,11 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 	{
 		CardComp->OnHandChanged.AddDynamic(this, &UBattleMainWidget::HandleHandChanged);
 		HandleHandChanged(CardComp->GetHand());
+		// 플레이어 선택 시에만 등장 애니메이션 재생 (카드 사용 시 갱신과 분리)
+		if (HandPanel) HandPanel->PlayShowAnimation();
 	}
 	else
 	{
-		// CardUserComponent가 없으면 빈 손패 전달
 		OnHandUpdated(TArray<FCardDataRow>());
 	}
 }
@@ -169,6 +189,23 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 // 카드 ID 목록을 CardSubsystem으로 조회해 FCardDataRow 배열로 변환 후 BP에 전달
 void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 {
+	// 선택된 플레이어 없으면 손패 갱신 무시 — 턴 종료 후 드로우 이벤트가 잔여 바인딩으로 도달하는 경우 방지
+	if (!SelectedUnit) return;
+
+	// 10장 초과 시 마지막 카드를 버리고 재귀 처리 (한 장씩 정리)
+	static constexpr int32 MaxHandSize = 10;
+	if (CardNames.Num() > MaxHandSize && SelectedUnit)
+	{
+		UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
+		if (CardComp)
+		{
+			const FName Overflow = CardNames.Last();
+			CardComp->RemoveFromHand(Overflow);      // OnHandChanged 재귀 → 나머지 정리
+			CardComp->DiscardSpecificCard(Overflow); // 재귀 완료 후 버림 파일로 이동
+		}
+		return;
+	}
+
 	UCardSubsystem* CS = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<UCardSubsystem>()
 		: nullptr;
@@ -190,14 +227,21 @@ void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 
 	// HandPanel이 연결되어 있으면 C++로 직접 ShowHand 호출, 없으면 BP 이벤트로 폴백
 	if (HandPanel)
+	{
 		HandPanel->ShowHand(Cards);
+
+		// 덱 카운트 갱신
+		UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
+		if (CardComp)
+			HandPanel->UpdateDeckCounts(CardComp->GetDrawPileCount(), CardComp->GetDiscardPileCount());
+	}
 	else
 		OnHandUpdated(Cards);
 }
 
 // HandPanel::OnCardSelected 수신
 // WBP_Card가 broadcast하는 CardID 필드값을 Row Name으로 변환 후 코스트 검증 및 큐 등록
-void UBattleMainWidget::HandleCardClicked(FName CardName)
+void UBattleMainWidget::HandleCardClicked(FName CardName, UCardWidget* ClickedCard)
 {
 	// 진단용: 호출 횟수·타이밍 추적 — 문제 해결 후 제거
 	UE_LOG(LogTemp, Error, TEXT("[DIAG] HandleCardClicked: %s | bIsProcessing: %d | PendingCard: %s"),
@@ -223,11 +267,10 @@ void UBattleMainWidget::HandleCardClicked(FName CardName)
 	if (PendingCardName == RowName)
 	{
 		PendingCardName = NAME_None;
-		// 대기 해제 → 캔버스 클릭 통과 복귀
 		if (MainCanvas)
 			MainCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		if (HandPanel) HandPanel->SetTargetingMode(false);
 		OnPendingCleared();
-		// 타겟 대기 해제 알림 (카메라 복귀용)
 		if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
 		return;
 	}
@@ -257,11 +300,10 @@ void UBattleMainWidget::HandleCardClicked(FName CardName)
 	// SingleEnemy / SingleAlly: 적(아군) 선택 대기 상태로 전환 — Row Name 저장
 	PendingCardName = RowName;
 	PendingCardData = *Row;
-	// 대기 진입 → 캔버스를 Visible로 전환해 NativeOnMouseButtonDown이 빈 영역 클릭을 수신하도록 함
 	if (MainCanvas)
 		MainCanvas->SetVisibility(ESlateVisibility::Visible);
+	if (HandPanel) HandPanel->SetTargetingMode(true);
 	OnCardPending(CardName); // UI에는 CardID 전달 (표시용)
-	// 타겟 대기 진입 알림 (카메라 적 앞으로 이동용)
 	if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(true);
 	UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Card pending: %s (RowName: %s) — waiting for target"),
 		*CardName.ToString(), *RowName.ToString());
@@ -332,8 +374,16 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 		// 카드 효과 즉시 실행
 		CombatManager->ExecuteCard(CardData, CasterIndex, TargetOverride);
 
+		// DrawCount가 있으면 즉시 드로우 (드로우 카드 효과)
+		if (CardData.DrawCount > 0)
+			CardComp->DrawCards(CardData.DrawCount);
+
 		// 카드를 DiscardPile/ExhaustPile로 이동
 		CardComp->DiscardSpecificCard(RemoveKey);
+
+		// DiscardSpecificCard 이후 덱 카운트 UI 갱신
+		if (HandPanel)
+			HandPanel->UpdateDeckCounts(CardComp->GetDrawPileCount(), CardComp->GetDiscardPileCount());
 
 		// 이번 턴 사용 기록 저장 (순서 추적용)
 		CombatManager->QueuePlayerAction(CardData, CasterIndex, CardRowName, TargetOverride);
@@ -342,20 +392,38 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 			*CardData.CardID.ToString(), SharedCost);
 	}
 
+	// 실제로 타겟 대기 중이었을 때만 카메라 복귀 브로드캐스트
+	const bool bWasTargeting = !PendingCardName.IsNone();
+
 	// 선택 대기 상태 초기화 및 캔버스 클릭 통과 복귀
 	PendingCardName = NAME_None;
 	if (MainCanvas)
 		MainCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	OnPendingCleared();
-	// 타겟 대기 해제 알림 (카메라 복귀용)
-	if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
+	if (bWasTargeting)
+	{
+		if (HandPanel) HandPanel->SetTargetingMode(false);
+		if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
+	}
 }
 
 // Btn_EndTurn 클릭 → PlayerExecutionPhase 진입 후 큐 실행
 // 대기 중인 카드가 있으면 먼저 취소하여 다음 턴에 OnPendingCleared가 오발되는 것을 방지
 void UBattleMainWidget::HandleEndTurnClicked()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] HandleEndTurnClicked called"));
 	CancelPendingCard();
+
+	// 버튼 즉시 숨김
+	if (Btn_NextPlayer) Btn_NextPlayer->SetVisibility(ESlateVisibility::Collapsed);
+	if (Btn_Back) Btn_Back->SetVisibility(ESlateVisibility::Collapsed);
+
+	// 손패 먼저 숨긴 후 턴 종료
+	if (HandPanel)
+		HandPanel->PlayHideAnimation();
+	else
+		OnHideHand();
+
 	if (CombatManager)
 		CombatManager->EndPlayerActionPhase();
 }
@@ -366,13 +434,23 @@ void UBattleMainWidget::HandleNextPlayerClicked()
 	SelectNextPlayer();
 }
 
-// Btn_Back 클릭 → 선택 해제 후 메인 플레이 화면으로 복귀
+// Btn_Back 클릭 → 현재 상태에 따라 한 단계씩 뒤로 이동
+// 타겟 지정 중: 타겟만 취소 (플레이어 슬롯으로 카메라 복귀, 선택 유지)
+// 플레이어 선택 중: 선택 해제 후 Default 위치로 복귀
 void UBattleMainWidget::HandleBackClicked()
 {
-	// 카드 대기 상태 취소
-	CancelPendingCard();
+	// 카메라 이동 중 입력 차단
+	if (CombatManager && CombatManager->bCameraMoving) return;
 
-	// 현재 선택 유닛의 OnHandChanged 바인딩 해제
+	// ── 단계 1: 타겟 지정 중이면 취소만 하고 종료 ────────────────
+	// CancelPendingCard → OnTargetingStateChanged(false) → 카메라 Reverse(플레이어 슬롯 복귀)
+	if (!PendingCardName.IsNone())
+	{
+		CancelPendingCard();
+		return;
+	}
+
+	// ── 단계 2: 플레이어 선택 상태 → 완전 복귀 ──────────────────
 	if (SelectedUnit)
 	{
 		UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
@@ -384,16 +462,20 @@ void UBattleMainWidget::HandleBackClicked()
 	// 손패 역모션 재생 — BP PlayHideAnimation 완료 시 ClearHand() + Hidden 처리
 	if (HandPanel)
 		HandPanel->PlayHideAnimation();
+	else
+		OnHideHand();
 
-	// 다음 플레이어 버튼 숨김
 	if (Btn_NextPlayer)
 		Btn_NextPlayer->SetVisibility(ESlateVisibility::Collapsed);
 
-	// 뒤로가기 버튼 숨김
+	// 뒤로가기 버튼 숨김 — Default 위치에서는 더 이상 누를 수 없음
 	if (Btn_Back)
 		Btn_Back->SetVisibility(ESlateVisibility::Collapsed);
 
-	// BP에 메인 플레이 화면 복귀 알림 (손패 패널 숨김 등 UI 처리)
+	// 카메라 Default 위치 복귀
+	if (CombatManager) CombatManager->OnCameraReturnToDefault.Broadcast();
+
+	// BP에 메인 플레이 화면 복귀 알림
 	OnReturnToMainScreen();
 }
 
@@ -448,11 +530,10 @@ void UBattleMainWidget::CancelPendingCard()
 {
 	if (PendingCardName.IsNone()) return;
 	PendingCardName = NAME_None;
-	// 대기 해제 → 캔버스 클릭 통과 복귀
 	if (MainCanvas)
 		MainCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	if (HandPanel) HandPanel->SetTargetingMode(false);
 	OnPendingCleared();
-	// 타겟 대기 해제 알림 (카메라 복귀용)
 	if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
 }
 
