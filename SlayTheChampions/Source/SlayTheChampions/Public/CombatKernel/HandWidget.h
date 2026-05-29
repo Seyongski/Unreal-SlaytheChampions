@@ -66,9 +66,7 @@ public:
 	void ClearHand();
 
 	// ── 대기 카드 관리 ───────────────────────────────────────────────────
-	UFUNCTION(BlueprintCallable, Category = "Hand")
-	void SetCardPending(FName CardID);
-
+	// 클릭된 위젯 포인터를 직접 받아 대기 상태로 — 동일 CardID 다중 보유 시 정확한 카드 특정
 	UFUNCTION(BlueprintCallable, Category = "Hand")
 	void SetCardPendingDirect(UCardWidget* Card);
 

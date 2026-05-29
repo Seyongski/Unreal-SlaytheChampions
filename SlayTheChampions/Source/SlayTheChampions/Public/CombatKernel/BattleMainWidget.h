@@ -165,6 +165,12 @@ private:
 	// 다음 플레이어 인덱스를 찾아 HandlePlayerClicked 호출
 	void SelectNextPlayer();
 
+	// 남은 코스트를 Text_Cost에 반영하고 OnCostChanged BP 이벤트 호출 — 코스트 표시 일원화
+	void UpdateCostDisplay();
+
+	// 현재 선택 플레이어의 OnHandChanged 바인딩 해제 후 SelectedUnit 초기화 — 선택 해제 일원화
+	void DeselectCurrentPlayer();
+
 	// 적 선택을 기다리는 카드 이름 (IsNone이면 미선택 상태)
 	FName PendingCardName;
 
@@ -173,4 +179,7 @@ private:
 
 	// HandleCardClicked 재진입 방지 플래그 — OnHandChanged 콜백 체인에서 중복 호출 차단
 	bool bIsProcessingCard = false;
+
+	// 손패 초과분 정리 중 플래그 — RemoveFromHand의 OnHandChanged 재방송으로 인한 재귀 차단
+	bool bTrimmingHand = false;
 };

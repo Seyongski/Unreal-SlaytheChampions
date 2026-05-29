@@ -8,6 +8,7 @@
 #include "Components/Button.h"
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/ScopeExit.h"
 
 // 위젯 초기화: CombatManager 탐색 및 바인딩, 플레이어 클릭 이벤트 바인딩, 마우스 활성화
 void UBattleMainWidget::NativeConstruct()
@@ -24,8 +25,7 @@ void UBattleMainWidget::NativeConstruct()
 		// BeginPlay에서 이미 StartTurn이 호출됐으므로 초기값 직접 설정
 		if (Text_TurnCount)
 			Text_TurnCount->SetText(FText::FromString(FString::Printf(TEXT("Turn %d"), CombatManager->TurnCount)));
-		if (Text_Cost)
-			Text_Cost->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), SharedCost, MaxCost)));
+		UpdateCostDisplay();
 
 		// SpawnedPlayers 클릭 이벤트 바인딩
 		BindPlayerClickEvents();
@@ -61,9 +61,11 @@ void UBattleMainWidget::NativeConstruct()
 	BindEnemyClickEvents();
 
 	// 마우스 커서 표시
-	UMouseManager* MouseManager = GetGameInstance()->GetSubsystem<UMouseManager>();
-	if (MouseManager)
-		MouseManager->SetMouseVisibility(GetOwningPlayer(), true);
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (UMouseManager* MouseManager = GI->GetSubsystem<UMouseManager>())
+			MouseManager->SetMouseVisibility(GetOwningPlayer(), true);
+	}
 
 	// 평소엔 클릭 통과 — 카드 대기 상태 진입 시에만 Visible로 전환
 	if (MainCanvas)
@@ -86,22 +88,14 @@ void UBattleMainWidget::OnPhaseChanged(ETurnPhase NewPhase)
 	{
 		// 플레이어 행동 턴 진입 시 공유 코스트 풀로 리셋
 		SharedCost = MaxCost;
-		if (Text_Cost)
-			Text_Cost->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), SharedCost, MaxCost)));
-		OnCostChanged(SharedCost, MaxCost);
+		UpdateCostDisplay();
 	}
 	else if (NewPhase == ETurnPhase::PlayerExecutionPhase)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] PlayerExecutionPhase | HandPanel=%s"),
 			HandPanel ? TEXT("valid") : TEXT("NULL"));
 		// 턴 종료 → 손패 숨김 및 플레이어 선택 해제
-		if (SelectedUnit)
-		{
-			UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
-			if (CardComp)
-				CardComp->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
-			SelectedUnit = nullptr;
-		}
+		DeselectCurrentPlayer();
 		if (Btn_NextPlayer) Btn_NextPlayer->SetVisibility(ESlateVisibility::Collapsed);
 		if (Btn_Back) Btn_Back->SetVisibility(ESlateVisibility::Collapsed);
 		if (CombatManager) CombatManager->OnCameraReturnToDefault.Broadcast();
@@ -147,14 +141,8 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 		if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
 	}
 
-	// 이전 선택 유닛의 CardUserComponent 바인딩 해제
-	if (SelectedUnit)
-	{
-		UCardUserComponent* PrevCard = SelectedUnit->FindComponentByClass<UCardUserComponent>();
-		if (PrevCard)
-			PrevCard->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
-	}
-
+	// 이전 선택 유닛의 CardUserComponent 바인딩 해제 후 새 유닛 선택
+	DeselectCurrentPlayer();
 	SelectedUnit = Unit;
 
 	// 카메라에 플레이어 선택 알림 (BattleCameraActor BP가 구독)
@@ -192,16 +180,32 @@ void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 	// 선택된 플레이어 없으면 손패 갱신 무시 — 턴 종료 후 드로우 이벤트가 잔여 바인딩으로 도달하는 경우 방지
 	if (!SelectedUnit) return;
 
-	// 10장 초과 시 마지막 카드를 버리고 재귀 처리 (한 장씩 정리)
+	// 초과분 정리 중 재방송된 OnHandChanged는 무시 — 재귀 방지
+	if (bTrimmingHand) return;
+
+	// 10장 초과 시 뒤에서부터 초과분을 한 장씩 버림 (한 패스로 정리)
 	static constexpr int32 MaxHandSize = 10;
-	if (CardNames.Num() > MaxHandSize && SelectedUnit)
+	if (CardNames.Num() > MaxHandSize)
 	{
 		UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
 		if (CardComp)
 		{
-			const FName Overflow = CardNames.Last();
-			CardComp->RemoveFromHand(Overflow);      // OnHandChanged 재귀 → 나머지 정리
-			CardComp->DiscardSpecificCard(Overflow); // 재귀 완료 후 버림 파일로 이동
+			// RemoveFromHand이 OnHandChanged를 재방송하므로 가드를 세워 재진입을 막고 한 곳에서 정리
+			bTrimmingHand = true;
+			int32 Overflow = CardNames.Num() - MaxHandSize;
+			for (int32 i = CardNames.Num() - 1; i >= 0 && Overflow > 0; --i)
+			{
+				const FName OverflowCard = CardNames[i];
+				// 제거 실패 시 카운트가 줄지 않아 무한 루프가 되므로 즉시 중단
+				if (!CardComp->RemoveFromHand(OverflowCard))
+					break;
+				CardComp->DiscardSpecificCard(OverflowCard);
+				--Overflow;
+			}
+			bTrimmingHand = false;
+
+			// 정리된 손패를 다시 표시
+			HandleHandChanged(CardComp->GetHand());
 		}
 		return;
 	}
@@ -243,10 +247,6 @@ void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 // WBP_Card가 broadcast하는 CardID 필드값을 Row Name으로 변환 후 코스트 검증 및 큐 등록
 void UBattleMainWidget::HandleCardClicked(FName CardName, UCardWidget* ClickedCard)
 {
-	// 진단용: 호출 횟수·타이밍 추적 — 문제 해결 후 제거
-	UE_LOG(LogTemp, Error, TEXT("[DIAG] HandleCardClicked: %s | bIsProcessing: %d | PendingCard: %s"),
-		*CardName.ToString(), (int32)bIsProcessingCard, *PendingCardName.ToString());
-
 	// OnHandChanged 콜백 체인 등에서 재진입 시 무시 — 이중 바인딩·이중 호출 방어
 	if (bIsProcessingCard) return;
 	ON_SCOPE_EXIT { bIsProcessingCard = false; };
@@ -266,12 +266,7 @@ void UBattleMainWidget::HandleCardClicked(FName CardName, UCardWidget* ClickedCa
 	// 같은 카드 재선택 시 선택 해제 (Row Name 기준 비교)
 	if (PendingCardName == RowName)
 	{
-		PendingCardName = NAME_None;
-		if (MainCanvas)
-			MainCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-		if (HandPanel) HandPanel->SetTargetingMode(false);
-		OnPendingCleared();
-		if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
+		CancelPendingCard();
 		return;
 	}
 
@@ -367,9 +362,7 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 			*RemoveKey.ToString(), CardComp->GetHandCount());
 
 		SharedCost -= CardData.Cost;
-		if (Text_Cost)
-			Text_Cost->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), SharedCost, MaxCost)));
-		OnCostChanged(SharedCost, MaxCost);
+		UpdateCostDisplay();
 
 		// 카드 효과 즉시 실행
 		CombatManager->ExecuteCard(CardData, CasterIndex, TargetOverride);
@@ -392,19 +385,9 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 			*CardData.CardID.ToString(), SharedCost);
 	}
 
-	// 실제로 타겟 대기 중이었을 때만 카메라 복귀 브로드캐스트
-	const bool bWasTargeting = !PendingCardName.IsNone();
-
-	// 선택 대기 상태 초기화 및 캔버스 클릭 통과 복귀
-	PendingCardName = NAME_None;
-	if (MainCanvas)
-		MainCanvas->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	OnPendingCleared();
-	if (bWasTargeting)
-	{
-		if (HandPanel) HandPanel->SetTargetingMode(false);
-		if (CombatManager) CombatManager->OnTargetingStateChanged.Broadcast(false);
-	}
+	// 선택 대기 상태 초기화 — 타겟 대기 중이었으면 타겟팅 모드 해제 및 카메라 복귀 브로드캐스트까지 일괄 처리
+	// (대기 중이 아니었으면 CancelPendingCard 내부에서 조기 반환)
+	CancelPendingCard();
 }
 
 // Btn_EndTurn 클릭 → PlayerExecutionPhase 진입 후 큐 실행
@@ -413,6 +396,17 @@ void UBattleMainWidget::HandleEndTurnClicked()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] HandleEndTurnClicked called"));
 	CancelPendingCard();
+
+	// 턴 종료 시 모든 플레이어의 손패를 버림 파일로 이동
+	if (CombatManager)
+	{
+		for (AUnit* Player : CombatManager->GetSpawnedPlayers())
+		{
+			if (!Player) continue;
+			if (UCardUserComponent* CardComp = Player->FindComponentByClass<UCardUserComponent>())
+				CardComp->DiscardHand();
+		}
+	}
 
 	// 버튼 즉시 숨김
 	if (Btn_NextPlayer) Btn_NextPlayer->SetVisibility(ESlateVisibility::Collapsed);
@@ -451,13 +445,7 @@ void UBattleMainWidget::HandleBackClicked()
 	}
 
 	// ── 단계 2: 플레이어 선택 상태 → 완전 복귀 ──────────────────
-	if (SelectedUnit)
-	{
-		UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
-		if (CardComp)
-			CardComp->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
-		SelectedUnit = nullptr;
-	}
+	DeselectCurrentPlayer();
 
 	// 손패 역모션 재생 — BP PlayHideAnimation 완료 시 ClearHand() + Hidden 처리
 	if (HandPanel)
@@ -556,4 +544,24 @@ void UBattleMainWidget::SelectNextPlayer()
 			return;
 		}
 	}
+}
+
+// 남은 코스트를 Text_Cost에 반영하고 OnCostChanged BP 이벤트 호출
+void UBattleMainWidget::UpdateCostDisplay()
+{
+	if (Text_Cost)
+		Text_Cost->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), SharedCost, MaxCost)));
+	OnCostChanged(SharedCost, MaxCost);
+}
+
+// 현재 선택 플레이어의 OnHandChanged 바인딩을 해제하고 SelectedUnit을 초기화
+void UBattleMainWidget::DeselectCurrentPlayer()
+{
+	if (!SelectedUnit) return;
+
+	UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
+	if (CardComp)
+		CardComp->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
+
+	SelectedUnit = nullptr;
 }

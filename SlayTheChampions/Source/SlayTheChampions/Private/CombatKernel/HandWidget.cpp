@@ -160,27 +160,6 @@ void UHandWidget::SetCardPendingDirect(UCardWidget* Card)
 	Card->SetPendingState(true);
 }
 
-// CardID와 일치하는 카드 위젯에 대기 상태 진입
-void UHandWidget::SetCardPending(FName CardID)
-{
-	ClearCardPending();
-
-	UPanelWidget* Target = CardCanvas ? static_cast<UPanelWidget*>(CardCanvas)
-	                                  : static_cast<UPanelWidget*>(CardContainer);
-	if (!Target) return;
-
-	for (int32 i = 0; i < Target->GetChildrenCount(); ++i)
-	{
-		UCardWidget* Card = Cast<UCardWidget>(Target->GetChildAt(i));
-		if (Card && Card->GetCardID() == CardID)
-		{
-			PendingCard = Card;
-			Card->SetPendingState(true);
-			break;
-		}
-	}
-}
-
 // 현재 대기 카드의 상태 해제 및 참조 초기화
 void UHandWidget::ClearCardPending()
 {

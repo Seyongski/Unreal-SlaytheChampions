@@ -43,9 +43,6 @@ void UCardWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointer
 FReply UCardWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
     if (bPendingRemoval) return FReply::Handled();
-    // 진단용: NativeOnMouseButtonDown 발화 횟수 추적 — 문제 해결 후 제거
-    UE_LOG(LogTemp, Error, TEXT("[DIAG] CardWidget NMBDown: %s | Widget: %s"),
-        *CurrentCardData.CardID.ToString(), *GetName());
     Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
     if (OwningHandWidget)
     {
