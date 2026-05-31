@@ -1,47 +1,59 @@
-#include "Party/PartyInstance.h"
+ï»¿#include "Party/PartyInstance.h"
+
+void UPartyInstance::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	if (PartyInfo.Champions.IsEmpty())
+	{
+		InitParty();
+	}
+}
 
 void UPartyInstance::InitParty()
 {
 	PartyInfo.InitSavePartyInfo();
+	PartyInfo.Champions.SetNum(2);
+	PartyInfo.Deck.SetNum(2);
 }
 
 
 void UPartyInstance::AddGold(int32 _Gold)
 {
-	UE_LOG(LogTemp, Warning, TEXT("°ñµåÈ¹µæ : %d"), _Gold);
+	UE_LOG(LogTemp, Warning, TEXT("ê³¨ë“œíšë“ : %d"), _Gold);
 	PartyInfo.Gold += _Gold;
 	if (PartyInfo.Gold >= PartyInfo.MaxGold)
 		PartyInfo.Gold = PartyInfo.MaxGold;
 
-	UE_LOG(LogTemp, Warning, TEXT("ÇöÀç °ñµå : %d"), PartyInfo.Gold);
+	UE_LOG(LogTemp, Warning, TEXT("í˜„ìž¬ ê³¨ë“œ : %d"), PartyInfo.Gold);
 }
 
 void UPartyInstance::UseGold(int32 _Price)
 {
-	UE_LOG(LogTemp, Warning, TEXT("°ñµå»ç¿ë : %d"), _Price);
+	UE_LOG(LogTemp, Warning, TEXT("ê³¨ë“œì‚¬ìš© : %d"), _Price);
 	if (PartyInfo.Gold >= _Price)
 	{
 		PartyInfo.Gold -= _Price;
 	}
 
 	if (PartyInfo.Gold < 0) PartyInfo.Gold = 0;
-	UE_LOG(LogTemp, Warning, TEXT("ÇöÀç °ñµå : %d"), PartyInfo.Gold);
+	UE_LOG(LogTemp, Warning, TEXT("í˜„ìž¬ ê³¨ë“œ : %d"), PartyInfo.Gold);
 }
 
 void UPartyInstance::AddRelic(FRelic _Relic)
 {
-	UE_LOG(LogTemp, Warning, TEXT("À¯¹°Ãß°¡ : %s"), *_Relic.RelicID.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("ìœ ë¬¼ì¶”ê°€ : %s"), *_Relic.RelicID.ToString());
 	PartyInfo.Relics.Add(_Relic);
 	if (PartyInfo.Relics.ContainsByPredicate([_Relic](const FRelic& Item)
 	{
 		return Item.RelicID == _Relic.RelicID;
 	}))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("À¯¹°È¹µæ¼º°ø : %s"), *_Relic.RelicID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("ìœ ë¬¼íšë“ì„±ê³µ : %s"), *_Relic.RelicID.ToString());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("À¯¹°È¹µæ½ÇÆÐ"));
+		UE_LOG(LogTemp, Warning, TEXT("ìœ ë¬¼íšë“ì‹¤íŒ¨"));
 	}
 	
 }

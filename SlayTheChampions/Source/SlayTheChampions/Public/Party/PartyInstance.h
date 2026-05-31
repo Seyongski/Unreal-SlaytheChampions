@@ -19,11 +19,15 @@ private:
 	FSavePartyInfo PartyInfo;
 
 public:
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
 	void UpdatePartyInfo(FSavePartyInfo _info) { PartyInfo = _info; }
 	
 	const FSavePartyInfo GetPartyInfo() const { return PartyInfo; }
 	void SetPartyInfo(FSavePartyInfo _info) { PartyInfo = _info; }
+
+	UFUNCTION(BlueprintPure)
+	int32 GetPartyMemberCount() const { return PartyInfo.Champions.Num(); }
 
 	/*파티 초기화*/
 	UFUNCTION(BlueprintCallable)

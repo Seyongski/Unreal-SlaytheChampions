@@ -24,6 +24,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AreaClear")
 	void RefreshRewards();
 
+	UFUNCTION(BlueprintCallable, Category = "AreaClear")
+	TArray<FName> GetCardRewardChoices(int32 PawnIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "AreaClear")
+	int32 GetPartyRewardTargetCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AreaClear")
+	void SetCardRewardChoiceCount(int32 InCount);
+
+	UFUNCTION(BlueprintPure, Category = "AreaClear")
+	int32 GetCardRewardChoiceCount() const;
+
 	UFUNCTION(BlueprintPure, Category = "AreaClear")
 	const TArray<FRewardData>& GetCurrentRewardData() const { return CurrentRewardData; }
 

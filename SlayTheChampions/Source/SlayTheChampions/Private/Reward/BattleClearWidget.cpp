@@ -1,4 +1,5 @@
-﻿#include "Reward/BattleClearWidget.h"
+#include "Reward/BattleClearWidget.h"
+#include "Reward/CardRewardSystem.h"
 #include "Relic/RelicSubsystem.h"
 #include "Map/RunSystem.h"
 #include "Reward/RewardStruct.h"
@@ -23,11 +24,12 @@ TArray<FRewardData> UBattleClearWidget::GenerateRewardData(EAreaType _type)
         Rewards.Add(RewardData);
     };
 
-    // 추후 유물 추가할 때 if문으로 골드나 NomalCard 등을 더 설정
+    const int32 CardChoiceCount = GetCardRewardChoiceCount();
+
     switch (_type)
     {
     case EAreaType::Normal:
-        AddReward(ERewardTypes::NomalCard, 0, TEXT("NormalCardReward"));
+        AddReward(ERewardTypes::NomalCard, CardChoiceCount, TEXT("NormalCardReward"));
         AddReward(ERewardTypes::Gold, RollGold(_type), TEXT("Gold"));
 
         if (RollChance(PotionRewardChances::Normal))
@@ -37,7 +39,7 @@ TArray<FRewardData> UBattleClearWidget::GenerateRewardData(EAreaType _type)
         break;
 
     case EAreaType::Elite:
-        AddReward(ERewardTypes::NomalCard, 0, TEXT("NormalCardReward"));
+        AddReward(ERewardTypes::NomalCard, CardChoiceCount, TEXT("NormalCardReward"));
         AddReward(ERewardTypes::Gold, RollGold(_type), TEXT("Gold"));
         if (UGameInstance* GameInstance = GetGameInstance())
         {
@@ -55,7 +57,7 @@ TArray<FRewardData> UBattleClearWidget::GenerateRewardData(EAreaType _type)
         break;
 
     case EAreaType::Boss:
-        AddReward(ERewardTypes::LegendCard, 0, TEXT("LegendCardReward"));
+        AddReward(ERewardTypes::LegendCard, CardChoiceCount, TEXT("LegendCardReward"));
         AddReward(ERewardTypes::Gold, RollGold(_type), TEXT("Gold"));
 
         if (RollChance(PotionRewardChances::Boss))
@@ -85,6 +87,56 @@ void UBattleClearWidget::RefreshRewards()
 
     CurrentRewardData = GenerateRewardData(AreaType);
     OnRewardDataRefreshed(CurrentRewardData);
+}
+
+TArray<FName> UBattleClearWidget::GetCardRewardChoices(int32 PawnIndex) const
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
+        {
+            return CardRewardSystem->GetRewardCardChoices(PawnIndex);
+        }
+    }
+
+    return {};
+}
+
+int32 UBattleClearWidget::GetPartyRewardTargetCount() const
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
+        {
+            return CardRewardSystem->GetPartyRewardTargetCount();
+        }
+    }
+
+    return 1;
+}
+
+void UBattleClearWidget::SetCardRewardChoiceCount(int32 InCount)
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
+        {
+            CardRewardSystem->SetCardRewardChoiceCount(InCount);
+        }
+    }
+}
+
+int32 UBattleClearWidget::GetCardRewardChoiceCount() const
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
+        {
+            return CardRewardSystem->GetCardRewardChoiceCount();
+        }
+    }
+
+    return 3;
 }
 
 void UBattleClearWidget::HandleVisibilityChanged(ESlateVisibility InVisibility)
