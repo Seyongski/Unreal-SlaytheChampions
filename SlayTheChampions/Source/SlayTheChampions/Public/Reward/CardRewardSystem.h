@@ -15,8 +15,6 @@ class SLAYTHECHAMPIONS_API UCardRewardSystem : public UGameInstanceSubsystem
     GENERATED_BODY()
 
 public:
-    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
     /*카드 ID 받아오기*/
     UFUNCTION(BlueprintCallable, Category = "CardReward")
     TArray<FName> GetRewardCardChoices(int32 PawnIndex) const;
@@ -52,15 +50,11 @@ private:
 
     TArray<FName> GetRewardPoolByRarity(EJobClass JobClass, ECardRarity CardRarity) const;
 
+    bool TryAddRewardChoice(EJobClass JobClass, TArray<FName>& Choices) const;
+
     ECardRarity RollRewardCardRarity() const;
 
     EJobClass ResolveRewardJobClass(int32 PawnIndex) const;
-
-    UPROPERTY()
-    TObjectPtr<UCardSubsystem> CardSubsystem;
-
-    UPROPERTY()
-    TObjectPtr<UPartyInstance> PartyInstance;
 
     UPROPERTY(EditAnywhere, Category = "CardReward")
     int32 CardRewardChoiceCount = 3;

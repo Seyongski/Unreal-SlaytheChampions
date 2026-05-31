@@ -4,16 +4,10 @@
 #include "Card/CardSubsystem.h"
 #include "Party/PartyInstance.h"
 
-void UCardRewardSystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-    Super::Initialize(Collection);
-}
-
 TArray<FName> UCardRewardSystem::GetRewardCardChoices(int32 PawnIndex) const
 {
     TArray<FName> Choices;
-    UCardSubsystem* LocalCardSubsystem = GetCardSubsystem();
-    if (CardRewardChoiceCount <= 0 || !LocalCardSubsystem)
+    if (CardRewardChoiceCount <= 0 || !GetCardSubsystem())
     {
         return Choices;
     }
@@ -23,29 +17,10 @@ TArray<FName> UCardRewardSystem::GetRewardCardChoices(int32 PawnIndex) const
 
     while (Choices.Num() < CardRewardChoiceCount)
     {
-        const ECardRarity RolledRarity = RollRewardCardRarity();
-        TArray<FName> RewardPool = GetRewardPoolByRarity(JobClass, RolledRarity);
-        RewardPool.RemoveAll([&Choices](const FName& CardId)
-        {
-            return Choices.Contains(CardId);
-        });
-
-        if (RewardPool.IsEmpty())
-        {
-            RewardPool = GetRewardPoolByRarity(JobClass, ECardRarity::Normal);
-            RewardPool.RemoveAll([&Choices](const FName& CardId)
-            {
-                return Choices.Contains(CardId);
-            });
-        }
-
-        if (RewardPool.IsEmpty())
+        if (!TryAddRewardChoice(JobClass, Choices))
         {
             break;
         }
-
-        const int32 PickIndex = FMath::RandRange(0, RewardPool.Num() - 1);
-        Choices.Add(RewardPool[PickIndex]);
     }
 
     return Choices;
@@ -149,38 +124,42 @@ TArray<FName> UCardRewardSystem::GetRewardPoolByRarity(EJobClass JobClass, ECard
     return RewardPool;
 }
 
+bool UCardRewardSystem::TryAddRewardChoice(EJobClass JobClass, TArray<FName>& Choices) const
+{
+    auto GetUniquePool = [this, JobClass, &Choices](ECardRarity CardRarity)
+    {
+        TArray<FName> RewardPool = GetRewardPoolByRarity(JobClass, CardRarity);
+        RewardPool.RemoveAll([&Choices](const FName& CardId)
+        {
+            return Choices.Contains(CardId);
+        });
+        return RewardPool;
+    };
+
+    TArray<FName> RewardPool = GetUniquePool(RollRewardCardRarity());
+    if (RewardPool.IsEmpty())
+    {
+        RewardPool = GetUniquePool(ECardRarity::Normal);
+    }
+
+    if (RewardPool.IsEmpty())
+    {
+        return false;
+    }
+
+    const int32 PickIndex = FMath::RandRange(0, RewardPool.Num() - 1);
+    Choices.Add(RewardPool[PickIndex]);
+    return true;
+}
+
 UCardSubsystem* UCardRewardSystem::GetCardSubsystem() const
 {
-    if (CardSubsystem)
-    {
-        return CardSubsystem;
-    }
-
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        UCardRewardSystem* MutableThis = const_cast<UCardRewardSystem*>(this);
-        MutableThis->CardSubsystem = GameInstance->GetSubsystem<UCardSubsystem>();
-        return MutableThis->CardSubsystem;
-    }
-
-    return nullptr;
+    return GetGameInstance() ? GetGameInstance()->GetSubsystem<UCardSubsystem>() : nullptr;
 }
 
 UPartyInstance* UCardRewardSystem::GetPartyInstance() const
 {
-    if (PartyInstance)
-    {
-        return PartyInstance;
-    }
-
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        UCardRewardSystem* MutableThis = const_cast<UCardRewardSystem*>(this);
-        MutableThis->PartyInstance = GameInstance->GetSubsystem<UPartyInstance>();
-        return MutableThis->PartyInstance;
-    }
-
-    return nullptr;
+    return GetGameInstance() ? GetGameInstance()->GetSubsystem<UPartyInstance>() : nullptr;
 }
 
 ECardRarity UCardRewardSystem::RollRewardCardRarity() const

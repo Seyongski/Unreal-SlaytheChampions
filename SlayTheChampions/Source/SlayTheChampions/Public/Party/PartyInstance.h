@@ -23,7 +23,7 @@ public:
 	
 	void UpdatePartyInfo(FSavePartyInfo _info) { PartyInfo = _info; }
 	
-	const FSavePartyInfo GetPartyInfo() const { return PartyInfo; }
+	const FSavePartyInfo& GetPartyInfo() const { return PartyInfo; }
 	void SetPartyInfo(FSavePartyInfo _info) { PartyInfo = _info; }
 
 	UFUNCTION(BlueprintPure)

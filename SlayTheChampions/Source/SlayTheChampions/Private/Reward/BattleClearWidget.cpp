@@ -75,68 +75,31 @@ TArray<FRewardData> UBattleClearWidget::GenerateRewardData(EAreaType _type)
 
 void UBattleClearWidget::RefreshRewards()
 {
-    EAreaType AreaType = EAreaType::Normal;
-
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        if (URunSystem* RunSystem = GameInstance->GetSubsystem<URunSystem>())
-        {
-            AreaType = RunSystem->GetCurrentRoomInfo().AreaType;
-        }
-    }
-
-    CurrentRewardData = GenerateRewardData(AreaType);
+    CurrentRewardData = GenerateRewardData(GetCurrentAreaType());
     OnRewardDataRefreshed(CurrentRewardData);
 }
 
 TArray<FName> UBattleClearWidget::GetCardRewardChoices(int32 PawnIndex) const
 {
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
-        {
-            return CardRewardSystem->GetRewardCardChoices(PawnIndex);
-        }
-    }
-
-    return {};
+    return GetCardRewardSystem() ? GetCardRewardSystem()->GetRewardCardChoices(PawnIndex) : TArray<FName>();
 }
 
 int32 UBattleClearWidget::GetPartyRewardTargetCount() const
 {
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
-        {
-            return CardRewardSystem->GetPartyRewardTargetCount();
-        }
-    }
-
-    return 1;
+    return GetCardRewardSystem() ? GetCardRewardSystem()->GetPartyRewardTargetCount() : 1;
 }
 
 void UBattleClearWidget::SetCardRewardChoiceCount(int32 InCount)
 {
-    if (UGameInstance* GameInstance = GetGameInstance())
+    if (UCardRewardSystem* CardRewardSystem = GetCardRewardSystem())
     {
-        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
-        {
-            CardRewardSystem->SetCardRewardChoiceCount(InCount);
-        }
+        CardRewardSystem->SetCardRewardChoiceCount(InCount);
     }
 }
 
 int32 UBattleClearWidget::GetCardRewardChoiceCount() const
 {
-    if (UGameInstance* GameInstance = GetGameInstance())
-    {
-        if (UCardRewardSystem* CardRewardSystem = GameInstance->GetSubsystem<UCardRewardSystem>())
-        {
-            return CardRewardSystem->GetCardRewardChoiceCount();
-        }
-    }
-
-    return 3;
+    return GetCardRewardSystem() ? GetCardRewardSystem()->GetCardRewardChoiceCount() : 3;
 }
 
 void UBattleClearWidget::HandleVisibilityChanged(ESlateVisibility InVisibility)
@@ -147,6 +110,24 @@ void UBattleClearWidget::HandleVisibilityChanged(ESlateVisibility InVisibility)
     {
         RefreshRewards();
     }
+}
+
+UCardRewardSystem* UBattleClearWidget::GetCardRewardSystem() const
+{
+    return GetGameInstance() ? GetGameInstance()->GetSubsystem<UCardRewardSystem>() : nullptr;
+}
+
+EAreaType UBattleClearWidget::GetCurrentAreaType() const
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (URunSystem* RunSystem = GameInstance->GetSubsystem<URunSystem>())
+        {
+            return RunSystem->GetCurrentRoomInfo().AreaType;
+        }
+    }
+
+    return EAreaType::Normal;
 }
 
 bool UBattleClearWidget::RollChance(float _Probability)

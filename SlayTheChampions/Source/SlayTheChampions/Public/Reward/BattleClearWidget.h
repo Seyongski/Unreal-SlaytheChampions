@@ -7,6 +7,7 @@
 #include "BattleClearWidget.generated.h"
 
 class URewardSystem;
+class UCardRewardSystem;
 
 UCLASS(Blueprintable, BlueprintType)
 class SLAYTHECHAMPIONS_API UBattleClearWidget : public UUserWidget
@@ -46,6 +47,10 @@ public:
 private:
 	UFUNCTION()
 	void HandleVisibilityChanged(ESlateVisibility InVisibility);
+
+	UCardRewardSystem* GetCardRewardSystem() const;
+
+	EAreaType GetCurrentAreaType() const;
 
 	/* 확률형 보상 생성 여부 */
 	bool RollChance(float _Probability);
