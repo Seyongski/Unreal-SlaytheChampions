@@ -7,6 +7,7 @@
 #include "BattleClearWidget.generated.h"
 
 class URewardSystem;
+class UCardRewardSystem;
 
 UCLASS(Blueprintable, BlueprintType)
 class SLAYTHECHAMPIONS_API UBattleClearWidget : public UUserWidget
@@ -24,6 +25,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AreaClear")
 	void RefreshRewards();
 
+	UFUNCTION(BlueprintCallable, Category = "AreaClear")
+	TArray<FName> GetCardRewardChoices(int32 PawnIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "AreaClear")
+	int32 GetPartyRewardTargetCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AreaClear")
+	void SetCardRewardChoiceCount(int32 InCount);
+
+	UFUNCTION(BlueprintPure, Category = "AreaClear")
+	int32 GetCardRewardChoiceCount() const;
+
 	UFUNCTION(BlueprintPure, Category = "AreaClear")
 	const TArray<FRewardData>& GetCurrentRewardData() const { return CurrentRewardData; }
 
@@ -34,6 +47,10 @@ public:
 private:
 	UFUNCTION()
 	void HandleVisibilityChanged(ESlateVisibility InVisibility);
+
+	UCardRewardSystem* GetCardRewardSystem() const;
+
+	EAreaType GetCurrentAreaType() const;
 
 	/* 확률형 보상 생성 여부 */
 	bool RollChance(float _Probability);
