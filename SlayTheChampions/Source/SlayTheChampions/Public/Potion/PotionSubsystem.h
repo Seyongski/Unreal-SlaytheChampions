@@ -60,6 +60,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Potion|Query")
 	FName GetRandomSpecialPotion() const { return GetRandomEventPotion(); }
 
+	UFUNCTION(BlueprintCallable, Category = "Potion|Query")
+	FName GetRandomAnyPotion() const;
+
 private:
 	void RebuildPotionCache();
 

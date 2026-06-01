@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Relic/RelicStruct.h"
+#include "Potion/PotionStruct.h"
 #include "ChampionStruct.generated.h"
 
 class AUnit;
@@ -29,6 +30,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "ChampionInstance", meta = (AllowPrivateAccess = "true"))
 	TArray<FRelic> Relics;
+
+	UPROPERTY(BlueprintReadOnly, Category = "ChampionInstance", meta = (AllowPrivateAccess = "true"))
+	TArray<FPotionData> Potions;
 public:
 
 	FSavePartyInfo()
@@ -42,5 +46,6 @@ public:
 		Champions.Empty();
 		Deck.Empty();
 		Relics.Empty();
+		Potions.Empty();
 	}
 };

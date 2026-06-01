@@ -38,6 +38,8 @@ FSourceEffectData URelicSubsystem::MakeRelicEffectData(const FSourceEffectRow& E
 	EffectData.TriggerCondition = EffectRow.TriggerCondition;
 	EffectData.TriggerValue = EffectRow.TriggerValue;
 	EffectData.TriggerUsageType = EffectRow.TriggerUsageType;
+	EffectData.SelectionGroup = EffectRow.SelectionGroup;
+	EffectData.SelectionMode = EffectRow.SelectionMode;
 	return EffectData;
 }
 
@@ -99,6 +101,21 @@ FName URelicSubsystem::GetRandomCommonRelic()
 	
 	const int32 Index = FMath::RandRange(0, CommonRelics.Num() - 1);
 	return CommonRelics[Index].RelicID;
+}
+
+FName URelicSubsystem::GetRandomShopAvailableRelic()
+{
+	TArray<FRelic> AvailableRelics;
+	AvailableRelics.Append(ShopRelics);
+	AvailableRelics.Append(CommonRelics);
+
+	if (AvailableRelics.IsEmpty())
+	{
+		return NAME_None;
+	}
+
+	const int32 Index = FMath::RandRange(0, AvailableRelics.Num() - 1);
+	return AvailableRelics[Index].RelicID;
 }
 
 TArray<FRelic> URelicSubsystem::GetCachedRelicsBySource(ERelicSourceType InSourceType) const

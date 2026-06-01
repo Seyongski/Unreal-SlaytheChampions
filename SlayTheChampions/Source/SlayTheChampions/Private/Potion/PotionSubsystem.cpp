@@ -91,6 +91,17 @@ FName UPotionSubsystem::GetRandomEventPotion() const
 	return EventPotions[Index].PotionID;
 }
 
+FName UPotionSubsystem::GetRandomAnyPotion() const
+{
+	if (Potions.IsEmpty())
+	{
+		return NAME_None;
+	}
+
+	const int32 Index = FMath::RandRange(0, Potions.Num() - 1);
+	return Potions[Index].PotionID;
+}
+
 void UPotionSubsystem::RebuildPotionCache()
 {
 	Potions.Reset();
@@ -162,6 +173,8 @@ FSourceEffectData UPotionSubsystem::MakePotionEffectData(const FSourceEffectRow&
 	EffectData.TriggerCondition = EffectRow.TriggerCondition;
 	EffectData.TriggerValue = EffectRow.TriggerValue;
 	EffectData.TriggerUsageType = EffectRow.TriggerUsageType;
+	EffectData.SelectionGroup = EffectRow.SelectionGroup;
+	EffectData.SelectionMode = EffectRow.SelectionMode;
 	return EffectData;
 }
 

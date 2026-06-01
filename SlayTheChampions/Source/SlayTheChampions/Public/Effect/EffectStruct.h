@@ -38,9 +38,17 @@ enum class EEffectTriggerUsageType : uint8
 	Repeat = 1 UMETA(DisplayName = "Repeat"),
 };
 
+UENUM(BlueprintType)
+/* 같은 그룹의 효과를 적용하는 방식 */
+enum class EEffectSelectionMode : uint8
+{
+	All = 0 UMETA(DisplayName = "All"),
+	RandomOne = 1 UMETA(DisplayName = "Random One"),
+};
+
 USTRUCT(BlueprintType)
 /* 카드, 유물, 포션이 공통으로 사용할 효과 CSV 행 */
-struct FSourceEffectRow : public FTableRowBase
+struct SLAYTHECHAMPIONS_API FSourceEffectRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -70,11 +78,17 @@ struct FSourceEffectRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EEffectTriggerUsageType TriggerUsageType = EEffectTriggerUsageType::OneShot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName SelectionGroup = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EEffectSelectionMode SelectionMode = EEffectSelectionMode::All;
 };
 
 USTRUCT(BlueprintType)
 /* 런타임에서 사용하는 공통 효과 데이터 */
-struct FSourceEffectData
+struct SLAYTHECHAMPIONS_API FSourceEffectData
 {
 	GENERATED_BODY()
 
@@ -101,4 +115,10 @@ struct FSourceEffectData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EEffectTriggerUsageType TriggerUsageType = EEffectTriggerUsageType::OneShot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName SelectionGroup = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EEffectSelectionMode SelectionMode = EEffectSelectionMode::All;
 };

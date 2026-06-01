@@ -65,3 +65,16 @@ void UPartyInstance::LostRelic(FName _RelicName)
 		return Item.RelicID == _RelicName;
 	});
 }
+
+void UPartyInstance::AddPotion(FPotionData _Potion)
+{
+	PartyInfo.Potions.Add(_Potion);
+}
+
+void UPartyInstance::LostPotion(FName _PotionName)
+{
+	PartyInfo.Potions.RemoveAll([_PotionName](const FPotionData& Item)
+	{
+		return Item.PotionID == _PotionName;
+	});
+}

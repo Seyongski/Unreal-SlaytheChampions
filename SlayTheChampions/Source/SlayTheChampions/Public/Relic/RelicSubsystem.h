@@ -69,6 +69,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Relic|Query")
     FName GetRandomCommonRelic();
 
+    UFUNCTION(BlueprintCallable, Category = "Relic|Query")
+    FName GetRandomShopAvailableRelic();
+
 private:
     void RebuildRelicCache();
 

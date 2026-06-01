@@ -48,5 +48,16 @@ public:
 	/*유물 잃어버림*/
 	UFUNCTION(BlueprintCallable)
 	void LostRelic(FName _RelicName);
+
+	/*포션 획득*/
+	UFUNCTION(BlueprintCallable)
+	void AddPotion(FPotionData _Potion);
+
+	/*포션 사용/제거*/
+	UFUNCTION(BlueprintCallable)
+	void LostPotion(FName _PotionName);
+
+	UFUNCTION(BlueprintPure)
+	const TArray<FPotionData>& GetPotions() const { return PartyInfo.Potions; }
 };
 
