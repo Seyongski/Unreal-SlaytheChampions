@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Unit/Job/JobComponent.h"
+#include "Unit/Job/JobDetail.h"
 #include "Job_Mage.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class SLAYTHECHAMPIONS_API UJob_Mage : public UJobComponent
+class SLAYTHECHAMPIONS_API UJob_Mage : public UJobDetail
 {
 	GENERATED_BODY()
 	
