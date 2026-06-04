@@ -255,6 +255,7 @@ public:
 	void EndPlayerActionPhase();
 
 	// 이번 턴 사용한 카드 기록 반환 (사용 순서대로)
+	// 카드 사용 히스토리 반환 (최대 10개, 턴 초기화 없음)
 	UFUNCTION(BlueprintPure, Category = "Turn")
 	const TArray<FQueuedAction>& GetActionHistory() const { return ActionQueue; }
 
@@ -299,7 +300,7 @@ private:
 	UPROPERTY()
 	TArray<AUnit*> SpawnedEnemies;
 
-	// 플레이어가 이번 턴에 사용한 카드 실행 대기열
+	// 카드 사용 히스토리 (최대 10개, 전투 중 초기화 없음)
 	UPROPERTY()
 	TArray<FQueuedAction> ActionQueue;
 

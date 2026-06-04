@@ -162,23 +162,25 @@ void ACombatManager::InitCombat()
 		{
 			const TArray<AUnit*>& Champions = Party->GetPartyInfo().Champions;
 			PlayerCount = FMath::Clamp(Champions.Num(), 1, 3);
+			AUnit** PlayerSlots[] = { &PlayerActor_0, &PlayerActor_1, &PlayerActor_2 };
 			for (int32 i = 0; i < PlayerCount; i++)
-				SetPlayerActor(i, Champions[i]);
-			UE_LOG(LogTemp, Log, TEXT("[CombatManager] PartyInstance에서 플레이어 %d명 로드"), PlayerCount);
+				*PlayerSlots[i] = Champions[i];
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] PartyInstance에서 플레이어 %d명 로드"), PlayerCount);
 		}
 		else
 		{
-			// 2순위: 레벨에 배치된 Team==Player AUnit 자동 탐색
+			// 2순위: 레벨에 배치된 Team==Ally AUnit 자동 탐색
+			AUnit** PlayerSlots[] = { &PlayerActor_0, &PlayerActor_1, &PlayerActor_2 };
 			int32 Idx = 0;
 			for (TActorIterator<AUnit> It(GetWorld()); It && Idx < 3; ++It)
 			{
 				if (It->Team == ETeam::Ally)
-					SetPlayerActor(Idx++, *It);
+					*PlayerSlots[Idx++] = *It;
 			}
 			if (Idx > 0)
 			{
 				PlayerCount = Idx;
-				UE_LOG(LogTemp, Log, TEXT("[CombatManager] 레벨에서 플레이어 %d명 자동 탐색"), Idx);
+				UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 레벨에서 플레이어 %d명 자동 탐색"), Idx);
 			}
 		}
 	}
@@ -256,7 +258,7 @@ void ACombatManager::InitCombat()
 		}
 		EnemyCount = SpawnedEnemies.Num();
 		if (EnemyCount > 0)
-			UE_LOG(LogTemp, Log, TEXT("[CombatManager] 레벨에서 적 %d명 자동 탐색"), EnemyCount);
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 레벨에서 적 %d명 자동 탐색"), EnemyCount);
 	}
 
 	// ── 5. 배틀 메인 위젯 생성 ──────────────────────────────────
@@ -472,8 +474,6 @@ void ACombatManager::ApplyTurnStartEffects(const TArray<AUnit*>& Units)
 void ACombatManager::StartTurn()
 {
 	TurnCount++;
-	// 새 턴 시작 시 이전 턴 기록 초기화
-	ActionQueue.Empty();
 	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Turn %d 시작"), TurnCount);
 
 	SetPhase(ETurnPhase::DrawPhase);
@@ -504,7 +504,6 @@ void ACombatManager::QueuePlayerAction(const FCardDataRow& Card, int32 CasterInd
 	Action.TargetOverride = TargetOverride;
 	if (ActionQueue.Num() >= 10)
 		ActionQueue.RemoveAt(0);
-
 	ActionQueue.Add(Action);
 
 	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 큐 추가: %s Target=%s (큐 크기=%d)"),
