@@ -130,3 +130,18 @@ struct SLAYTHECHAMPIONS_API FGimmickPhase
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FText           AnnounceText;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) bool            bOneShot     = true; // true면 한 번만 발동
 };
+
+/**
+ * EElementType
+ *
+ * 마법사가 사용하는 원소 종류
+ * FieldElement에서 현재 필드에 깔린 원소를 추적하는데 사용
+ */
+UENUM(BlueprintType)
+enum class ECardElementType : uint8
+{
+    None    UMETA(DisplayName = "None"),
+    Fire    UMETA(DisplayName = "Fire"),
+    Ice     UMETA(DisplayName = "Ice"),
+    Thunder UMETA(DisplayName = "Thunder")
+};
