@@ -58,8 +58,11 @@ struct SLAYTHECHAMPIONS_API FEnemyDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick")
 	TSubclassOf<UGimmickComponent> GimmickClass;
 
+	// 같은 기믹이지만 수치를 다르게 하고 싶을때만 사용
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gimmick")
 	TObjectPtr<UGimmickData> GimmickData;
+	
 
 	//비주얼
 	// 스켈레탈 메시 + AnimBP + 몽타주 세트를 담은 DA
