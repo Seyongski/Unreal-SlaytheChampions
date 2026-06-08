@@ -1,4 +1,4 @@
-#include "CombatKernel/BattleMainWidget.h"
+﻿#include "CombatKernel/BattleMainWidget.h"
 #include "CombatKernel/CombatManager.h"
 #include "CombatKernel/HandWidget.h"
 #include "Unit/Unit.h"
@@ -134,8 +134,15 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 	}
 
 	// 이전 선택 유닛의 CardUserComponent 바인딩 해제 후 새 유닛 선택
+	AUnit* PrevSelected = SelectedUnit;   // 카메라 이동 디버그용: 직전 선택과 비교
 	DeselectCurrentPlayer();
 	SelectedUnit = Unit;
+
+	// [카메라 디버그] 같은 플레이어 재클릭 시에도 이동 요청이 나가는지 확인
+	// (실제 스킵은 BattleCameraActor BP 의 멱등 게이트가 담당 — 같은 슬롯이면 Return 해야 정상)
+	UE_LOG(LogTemp, Warning, TEXT("[Camera] OnBattlePlayerSelected broadcast: Unit=%s, SameAsPrev=%s"),
+		*Unit->GetName(),
+		(PrevSelected == Unit) ? TEXT("YES(게이트가 스킵해야 함)") : TEXT("NO(이동 정상)"));
 
 	// 카메라에 플레이어 선택 알림 (BattleCameraActor BP가 구독)
 	if (CombatManager) CombatManager->OnBattlePlayerSelected.Broadcast(Unit);
@@ -156,8 +163,8 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 	{
 		CardComp->OnHandChanged.AddDynamic(this, &UBattleMainWidget::HandleHandChanged);
 		HandleHandChanged(CardComp->GetHand());
-		// 플레이어 선택 시에만 등장 애니메이션 재생 (카드 사용 시 갱신과 분리)
-		if (HandPanel) HandPanel->PlayShowAnimation();
+		if (HandPanel)
+			HandPanel->PlayShowAnimation();
 	}
 	else
 	{
@@ -360,7 +367,10 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 		SharedCost -= CardData.Cost;
 		UpdateCostDisplay();
 
-		// 카드 효과 즉시 실행
+		// 히스토리 먼저 기록 — ExecuteCard의 OnActionExecuted 브로드캐스트 전에 ActionQueue에 있어야 함
+		CombatManager->QueuePlayerAction(CardData, CasterIndex, CardRowName, TargetOverride);
+
+		// 카드 효과 즉시 실행 (끝에서 OnActionExecuted 브로드캐스트 → ActionHistoryWidget 갱신)
 		CombatManager->ExecuteCard(CardData, CasterIndex, TargetOverride);
 
 		// DrawCount가 있으면 즉시 드로우 (드로우 카드 효과)
@@ -373,9 +383,6 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 		// DiscardSpecificCard 이후 덱 카운트 UI 갱신
 		if (HandPanel)
 			HandPanel->UpdateDeckCounts(CardComp->GetDrawPileCount(), CardComp->GetDiscardPileCount());
-
-		// 이번 턴 사용 기록 저장 (순서 추적용)
-		CombatManager->QueuePlayerAction(CardData, CasterIndex, CardRowName, TargetOverride);
 
 		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Card executed: %s | Cost left: %d"),
 			*CardData.CardID.ToString(), SharedCost);
@@ -419,6 +426,8 @@ void UBattleMainWidget::HandleEndTurnClicked()
 		OnHideHand();
 
 	// 카메라 Default 위치 복귀 + 메인 화면 복귀 알림
+	// EndPlayerActionPhase → OnPhaseChanged 와 중복 트리거되지만,
+	// CameraSet 의 멱등 게이트(LastTargetSlot)가 같은 목표로의 재호출을 무시하므로 dip 없음
 	if (CombatManager)
 		CombatManager->OnCameraReturnToDefault.Broadcast();
 	OnReturnToMainScreen();
