@@ -42,5 +42,6 @@ public:
 	static void TickEffects(AUnit* Unit);
 
 	// 데미지 파이프라인: 공격자 버프/디버프 → 대상 Vulnerable → Shield 흡수 → HP 감소
-	static void ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker);
+	// bIsAttack=false면 도트(Burn 등)로 간주 — 피격 트리거(Bleed)를 발동하지 않는다
+	static void ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker, bool bIsAttack = true);
 };

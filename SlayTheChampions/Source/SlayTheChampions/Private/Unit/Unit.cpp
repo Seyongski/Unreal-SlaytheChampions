@@ -27,6 +27,8 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// StatComponent 1회 캐싱 (없는 유닛이면 nullptr 유지)
+	CachedStat = FindComponentByClass<UStatComponent>();
 }
 
 void AUnit::HandleDeath()
@@ -48,7 +50,8 @@ void AUnit::NotifyMove(FVector WorldDestination)
 
 UStatComponent* AUnit::GetStat() const
 {
-	return FindComponentByClass<UStatComponent>();
+	// 캐시 우선, BeginPlay 전이거나 미캐싱이면 Find로 폴백
+	return CachedStat ? CachedStat : FindComponentByClass<UStatComponent>();
 }
 
 bool AUnit::IsAlive() const

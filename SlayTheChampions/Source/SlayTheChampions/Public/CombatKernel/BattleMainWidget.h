@@ -13,7 +13,6 @@ class UTextBlock;
 class UButton;
 class AUnit;
 class UHandWidget;
-class UActionHistoryWidget;
 
 /**
  * UBattleMainWidget
@@ -91,10 +90,6 @@ public:
 	// 손패 패널 참조 (WBP에서 BindWidget 또는 BP에서 직접 할당)
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional), Category = "Hand")
 	UHandWidget* HandPanel;
-
-	// 이번 턴 사용 카드 히스토리 패널 (WBP에서 ActionHistoryPanel 이름으로 추가)
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional), Category = "History")
-	UActionHistoryWidget* ActionHistoryPanel;
 
 protected:
 	// 유닛 외 영역 클릭 시 대기 카드 취소 처리

@@ -1,6 +1,7 @@
 ﻿#include "CombatKernel/CombatManager.h"
 #include "CombatKernel/EffectManager.h"
 #include "CombatKernel/BattleMainWidget.h"
+#include "CombatKernel/CardComboEvaluator.h"
 #include "Camera/CameraActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
@@ -96,6 +97,11 @@ UBoxComponent* ACombatManager::SetupBox(const FName& BoxName,
 void ACombatManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 콤보 평가기 생성 (전투마다 새로 생성되어 상태 초기화됨). ComboTable 미지정 시에도 안전
+	ComboEvaluator = NewObject<UCardComboEvaluator>(this);
+	ComboEvaluator->Initialize(this, ComboTable);
+
 	InitCombat();
 }
 
@@ -165,7 +171,7 @@ void ACombatManager::InitCombat()
 			AUnit** PlayerSlots[] = { &PlayerActor_0, &PlayerActor_1, &PlayerActor_2 };
 			for (int32 i = 0; i < PlayerCount; i++)
 				*PlayerSlots[i] = Champions[i];
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] PartyInstance에서 플레이어 %d명 로드"), PlayerCount);
+			UE_LOG(LogTemp, Log, TEXT("[CombatManager] PartyInstance에서 플레이어 %d명 로드"), PlayerCount);
 		}
 		else
 		{
@@ -180,7 +186,7 @@ void ACombatManager::InitCombat()
 			if (Idx > 0)
 			{
 				PlayerCount = Idx;
-				UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 레벨에서 플레이어 %d명 자동 탐색"), Idx);
+				UE_LOG(LogTemp, Log, TEXT("[CombatManager] 레벨에서 플레이어 %d명 자동 탐색"), Idx);
 			}
 		}
 	}
@@ -201,7 +207,7 @@ void ACombatManager::InitCombat()
 			CardComp->PawnIndex = i;
 			CardComp->InitializeDeck();
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Player[%d] 등록: %s"), i, *Actor->GetName());
+		UE_LOG(LogTemp, Log, TEXT("[CombatManager] Player[%d] 등록: %s"), i, *Actor->GetName());
 	}
 
 	// ── 4. 적 유닛 등록 ──────────────────────────────────────────
@@ -232,7 +238,7 @@ void ACombatManager::InitCombat()
 			}
 
 			SpawnedEnemies.Add(Actor);
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Enemy[%d] 스폰: %s (HP:%d)"), i, *Slot.UnitName.ToString(), Slot.MaxHP);
+			UE_LOG(LogTemp, Log, TEXT("[CombatManager] Enemy[%d] 스폰: %s (HP:%d)"), i, *Slot.UnitName.ToString(), Slot.MaxHP);
 		}
 	}
 	else if (bEnemyManualSet || EnemyActor_0)
@@ -245,7 +251,7 @@ void ACombatManager::InitCombat()
 			AUnit* Actor = EnemyActorArr[i];
 			if (!Actor) continue;
 			SpawnedEnemies.Add(Actor);
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Enemy[%d] 등록: %s"), i, *Actor->GetName());
+			UE_LOG(LogTemp, Log, TEXT("[CombatManager] Enemy[%d] 등록: %s"), i, *Actor->GetName());
 		}
 	}
 	else
@@ -258,7 +264,7 @@ void ACombatManager::InitCombat()
 		}
 		EnemyCount = SpawnedEnemies.Num();
 		if (EnemyCount > 0)
-			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 레벨에서 적 %d명 자동 탐색"), EnemyCount);
+			UE_LOG(LogTemp, Log, TEXT("[CombatManager] 레벨에서 적 %d명 자동 탐색"), EnemyCount);
 	}
 
 	// ── 5. 배틀 메인 위젯 생성 ──────────────────────────────────
@@ -319,7 +325,7 @@ void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex, AU
 			break;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[ExecuteCard] Targets=%d Damage=%d"), Targets.Num(), Card.Damage);
+	UE_LOG(LogTemp, Log, TEXT("[ExecuteCard] Targets=%d Damage=%d"), Targets.Num(), Card.Damage);
 
 	// ── 1. 기본 효과: Damage / HealAmount / Block — 카드의 TargetType 대상에게 적용 ──
 	for (AUnit* Target : Targets)
@@ -443,9 +449,9 @@ void ACombatManager::SetPhase(ETurnPhase NewPhase)
 
 	switch (NewPhase)
 	{
-		case ETurnPhase::DrawPhase:            UE_LOG(LogTemp, Warning, TEXT("[Turn %d] 드로우턴"), TurnCount);      break;
-		case ETurnPhase::PlayerActionPhase:    UE_LOG(LogTemp, Warning, TEXT("[Turn %d] 플레이어 행동턴"), TurnCount); break;
-		case ETurnPhase::EnemyPhase:           UE_LOG(LogTemp, Warning, TEXT("[Turn %d] 몬스터턴"), TurnCount);      break;
+		case ETurnPhase::DrawPhase:            UE_LOG(LogTemp, Log, TEXT("[Turn %d] 드로우턴"), TurnCount);      break;
+		case ETurnPhase::PlayerActionPhase:    UE_LOG(LogTemp, Log, TEXT("[Turn %d] 플레이어 행동턴"), TurnCount); break;
+		case ETurnPhase::EnemyPhase:           UE_LOG(LogTemp, Log, TEXT("[Turn %d] 몬스터턴"), TurnCount);      break;
 	}
 }
 
@@ -485,7 +491,7 @@ void ACombatManager::TickBuffsAndDebuffs(const TArray<AUnit*>& Units)
 void ACombatManager::StartTurn()
 {
 	TurnCount++;
-	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] Turn %d 시작"), TurnCount);
+	UE_LOG(LogTemp, Log, TEXT("[CombatManager] Turn %d 시작"), TurnCount);
 
 	SetPhase(ETurnPhase::DrawPhase);
 
@@ -524,10 +530,20 @@ void ACombatManager::QueuePlayerAction(const FCardDataRow& Card, int32 CasterInd
 		ActionQueue.RemoveAt(0);
 	ActionQueue.Add(Action);
 
-	UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 큐 추가: %s Target=%s (큐 크기=%d)"),
+	UE_LOG(LogTemp, Log, TEXT("[CombatManager] 큐 추가: %s Target=%s (큐 크기=%d)"),
 		*Card.CardID.ToString(),
 		TargetOverride ? *TargetOverride->GetName() : TEXT("default"),
 		ActionQueue.Num());
+
+	// 콤보 판정은 여기서 하지 않는다 — 카드 효과(ExecuteCard) 적용 이후에 호출되어야 하므로
+	// BattleMainWidget::QueueCardAction이 ExecuteCard 다음에 EvaluatePlayedCardCombos()를 호출한다
+}
+
+// 카드 효과 적용 후 콤보 조건 평가 — BattleMainWidget::QueueCardAction에서 ExecuteCard 다음에 호출
+void ACombatManager::EvaluatePlayedCardCombos(int32 CasterIndex)
+{
+	if (ComboEvaluator)
+		ComboEvaluator->EvaluateAfterCardPlayed(CasterIndex);
 }
 
 // 플레이어 행동 입력을 종료하고 적 턴으로 직접 전환 (카드 효과는 이미 즉시 실행됨)
@@ -698,7 +714,7 @@ void ACombatManager::ExecuteEnemyAction(AUnit* Caster, const FEnemyAction& Actio
 			for (int32 i = 0; i < FMath::Max(1, Action.Hits); i++)
 				UEffectManager::ProcessDamage(Target, Action.Value, Caster);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] %s 공격 → %d 타겟, %d 데미지 x%d"),
+		UE_LOG(LogTemp, Log, TEXT("[CombatManager] %s 공격 → %d 타겟, %d 데미지 x%d"),
 			*Caster->GetName(), Targets.Num(), Action.Value, Action.Hits);
 		break;
 
@@ -708,7 +724,7 @@ void ACombatManager::ExecuteEnemyAction(AUnit* Caster, const FEnemyAction& Actio
 		if (Targets.IsEmpty()) Targets.Add(Caster);
 		for (AUnit* Target : Targets)
 			UEffectManager::ApplyEffect(Target, EEffectType::Shield, Action.Value);
-		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] %s 방어 → %d 타겟에 Shield +%d"),
+		UE_LOG(LogTemp, Log, TEXT("[CombatManager] %s 방어 → %d 타겟에 Shield +%d"),
 			*Caster->GetName(), Targets.Num(), Action.Value);
 		break;
 
@@ -721,7 +737,7 @@ void ACombatManager::ExecuteEnemyAction(AUnit* Caster, const FEnemyAction& Actio
 
 	case EIntentKind::NoAttack:
 	default:
-		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] %s 행동 없음"), *Caster->GetName());
+		UE_LOG(LogTemp, Log, TEXT("[CombatManager] %s 행동 없음"), *Caster->GetName());
 		break;
 	}
 }

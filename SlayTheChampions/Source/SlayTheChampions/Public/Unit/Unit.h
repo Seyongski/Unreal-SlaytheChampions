@@ -106,7 +106,7 @@ public:
 
 	
 
-	// StatComponent를 직접 저장하지 않고 Find로 가져옴
+	// StatComponent 반환. BeginPlay에서 1회 캐싱하고, 없으면 nullptr (매 호출 Find 비용 절감)
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
 	UStatComponent* GetStat() const;
 
@@ -114,9 +114,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
 	bool IsAlive() const;
 
-	// StatComponent를 직접 저장하면 안 되는 이유: AUnit을 상속한 StatComponent를 가진다고 가정하는데,
-	// 나이나 서브클래스에 HP가 필요없는 유닛도 Unit을 베이스로 쓸 경우
-	// FindComponentByClass<>로 없으면 컴포넌트가 없는 경우 nullptr을 받아서 다르게 처리하면 됨
+	// HP가 필요 없는 유닛도 Unit을 베이스로 쓸 수 있으므로, StatComponent가 없으면 nullptr을 유지한다.
+	// (캐싱하더라도 미보유 유닛은 계속 nullptr — 호출 측에서 null 체크로 분기)
 
 
 protected:
@@ -126,4 +125,10 @@ protected:
 	// 마우스 클릭 시 OnUnitClicked 브로드캐스트
 	virtual void NotifyActorOnClicked(FKey ButtonPressed) override;
 
-};	
+private:
+
+	// GetStat() 캐싱용 — BeginPlay에서 설정. 미보유 유닛이면 nullptr 유지
+	UPROPERTY()
+	UStatComponent* CachedStat = nullptr;
+
+};

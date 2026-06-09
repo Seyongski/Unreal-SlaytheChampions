@@ -109,9 +109,10 @@ void UBattleMainWidget::BindPlayerClickEvents()
 void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 {
 	if (!Unit) return;
-	// TODO: 사망한 플레이어는 선택되지 않도록 조치 필요
-	//       IsAlive() 체크 추가 및 클릭 이벤트 바인딩 해제 (HandleDeath 연동) 예정
-	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Player clicked: %s"), *Unit->GetName());
+	// 사망한 플레이어는 선택/타겟 불가 (SingleAlly 타겟 클릭 경로도 여기서 함께 차단됨)
+	// TODO: 사망 시 OnUnitClicked 바인딩 해제 (HandleDeath 연동)는 별도 작업으로 남김
+	if (!Unit->IsAlive()) return;
+	UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Player clicked: %s"), *Unit->GetName());
 
 	// SingleAlly 카드 대기 중: 시전자 본인 제외하고 클릭한 플레이어를 타겟으로 등록
 	if (!PendingCardName.IsNone() && PendingCardData.TargetType == ETargetType::SingleAlly)
@@ -134,15 +135,8 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 	}
 
 	// 이전 선택 유닛의 CardUserComponent 바인딩 해제 후 새 유닛 선택
-	AUnit* PrevSelected = SelectedUnit;   // 카메라 이동 디버그용: 직전 선택과 비교
 	DeselectCurrentPlayer();
 	SelectedUnit = Unit;
-
-	// [카메라 디버그] 같은 플레이어 재클릭 시에도 이동 요청이 나가는지 확인
-	// (실제 스킵은 BattleCameraActor BP 의 멱등 게이트가 담당 — 같은 슬롯이면 Return 해야 정상)
-	UE_LOG(LogTemp, Warning, TEXT("[Camera] OnBattlePlayerSelected broadcast: Unit=%s, SameAsPrev=%s"),
-		*Unit->GetName(),
-		(PrevSelected == Unit) ? TEXT("YES(게이트가 스킵해야 함)") : TEXT("NO(이동 정상)"));
 
 	// 카메라에 플레이어 선택 알림 (BattleCameraActor BP가 구독)
 	if (CombatManager) CombatManager->OnBattlePlayerSelected.Broadcast(Unit);
@@ -275,7 +269,7 @@ void UBattleMainWidget::HandleCardClicked(FName CardName, UCardWidget* ClickedCa
 	// 코스트 부족 시 — SetCardPendingDirect로 걸린 pending 상태 해제 후 무시
 	if (SharedCost < Row->Cost)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Not enough cost for %s (need %d, have %d)"),
+		UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Not enough cost for %s (need %d, have %d)"),
 			*CardName.ToString(), Row->Cost, SharedCost);
 		if (HandPanel) HandPanel->ClearCardPending();
 		return;
@@ -313,8 +307,11 @@ void UBattleMainWidget::HandleEnemyClicked(AUnit* Enemy)
 {
 	if (!Enemy || !Enemy->IsAlive()) return;
 
+	// 적이 아닌 유닛(아군 등)은 무시 — SingleEnemy 카드가 아군을 타겟해 데미지를 주는 버그 방지
+	if (CombatManager && !CombatManager->GetSpawnedEnemies().Contains(Enemy)) return;
+
 	// 적 클릭 수신 확인 로그 (PendingCard 여부와 무관하게 항상 출력)
-	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Enemy clicked: %s | PendingCard: %s"),
+	UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Enemy clicked: %s | PendingCard: %s"),
 		*Enemy->GetName(),
 		PendingCardName.IsNone() ? TEXT("none") : *PendingCardName.ToString());
 
@@ -339,7 +336,7 @@ void UBattleMainWidget::BindEnemyClickEvents()
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Enemy click events bound: %d enemies"), BoundCount);
+	UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Enemy click events bound: %d enemies"), BoundCount);
 }
 
 // 카드+타겟이 확정됐을 때 호출
@@ -361,7 +358,7 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 	// Hand에서 카드 제거 + OnHandChanged 브로드캐스트 → 손패 UI 즉시 갱신
 	if (CardComp->RemoveFromHand(RemoveKey))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Card removed from hand: %s | Hand count: %d"),
+		UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Card removed from hand: %s | Hand count: %d"),
 			*RemoveKey.ToString(), CardComp->GetHandCount());
 
 		SharedCost -= CardData.Cost;
@@ -370,8 +367,11 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 		// 히스토리 먼저 기록 — ExecuteCard의 OnActionExecuted 브로드캐스트 전에 ActionQueue에 있어야 함
 		CombatManager->QueuePlayerAction(CardData, CasterIndex, CardRowName, TargetOverride);
 
-		// 카드 효과 즉시 실행 (끝에서 OnActionExecuted 브로드캐스트 → ActionHistoryWidget 갱신)
+		// 카드 효과 즉시 실행 (끝에서 OnActionExecuted 브로드캐스트 → 라이브 콤보 위젯 갱신)
 		CombatManager->ExecuteCard(CardData, CasterIndex, TargetOverride);
+
+		// 카드 효과 적용 후 콤보 판정 (효과 이후 발동되도록 — 큐 등록은 QueuePlayerAction에서 이미 됨)
+		CombatManager->EvaluatePlayedCardCombos(CasterIndex);
 
 		// DrawCount가 있으면 즉시 드로우 (드로우 카드 효과)
 		if (CardData.DrawCount > 0)
@@ -384,7 +384,7 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 		if (HandPanel)
 			HandPanel->UpdateDeckCounts(CardComp->GetDrawPileCount(), CardComp->GetDiscardPileCount());
 
-		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] Card executed: %s | Cost left: %d"),
+		UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] Card executed: %s | Cost left: %d"),
 			*CardData.CardID.ToString(), SharedCost);
 	}
 
@@ -397,7 +397,7 @@ void UBattleMainWidget::QueueCardAction(const FCardDataRow& CardData, AUnit* Tar
 // 대기 중인 카드가 있으면 먼저 취소하여 다음 턴에 OnPendingCleared가 오발되는 것을 방지
 void UBattleMainWidget::HandleEndTurnClicked()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] HandleEndTurnClicked called"));
+	UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] HandleEndTurnClicked called"));
 	OnPlayerTurnEnd();
 	CancelPendingCard();
 
@@ -506,18 +506,23 @@ FReply UBattleMainWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 		if (!HitUnit)
 			HitUnit = TryFindUnit(ECC_Pawn);
 
-		UE_LOG(LogTemp, Warning, TEXT("[BattleMainWidget] MouseDown | PendingCard: %s | HitUnit: %s | Alive: %s"),
+		UE_LOG(LogTemp, Log, TEXT("[BattleMainWidget] MouseDown | PendingCard: %s | HitUnit: %s | Alive: %s"),
 			*PendingCardName.ToString(),
 			HitUnit ? *HitUnit->GetName() : TEXT("none"),
 			(HitUnit && HitUnit->IsAlive()) ? TEXT("true") : TEXT("false"));
 
 		// FReply::Unhandled() 만으로는 3D 액터의 OnUnitClicked까지 전파되지 않으므로 직접 호출
+		// 진영을 검증해 잘못된 대상(아군에 SingleEnemy, 적에 SingleAlly)으로 등록되는 것을 막는다
 		if (HitUnit && HitUnit->IsAlive())
 		{
-			if (PendingCardData.TargetType == ETargetType::SingleEnemy)
+			const bool bIsEnemy  = CombatManager && CombatManager->GetSpawnedEnemies().Contains(HitUnit);
+			const bool bIsPlayer = CombatManager && CombatManager->GetSpawnedPlayers().Contains(HitUnit);
+
+			if (PendingCardData.TargetType == ETargetType::SingleEnemy && bIsEnemy)
 				HandleEnemyClicked(HitUnit);
-			else if (PendingCardData.TargetType == ETargetType::SingleAlly)
+			else if (PendingCardData.TargetType == ETargetType::SingleAlly && bIsPlayer)
 				HandlePlayerClicked(HitUnit);
+			// 진영이 맞지 않으면 무시하고 대기 유지 (클릭만 소비)
 			return FReply::Handled();
 		}
 	}

@@ -13,6 +13,8 @@ class UBoxComponent;
 class UArrowComponent;
 class ACameraActor;
 class UBattleMainWidget;
+class UCardComboEvaluator;
+class UDataTable;
 
 /**
  * ETurnPhase
@@ -73,6 +75,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCameraReturnToDefault);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyPhaseStarted);
 // 몬스터 1명 행동 완료 후 브로드캐스트 (다음 행동 전 — 연출 트리거용)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyActionFinished, int32, EnemyIndex);
+// 카드 히스토리 콤보 발동 시 브로드캐스트 (UI 배너·VFX·사운드 트리거용)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnComboTriggered, FName, ComboID, int32, CasterIndex);
 
 /**
  * ACombatManager
@@ -228,6 +232,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Turn")
 	FOnEnemyActionFinished OnEnemyActionFinished;
 
+	// 카드 히스토리 콤보 발동 시 (UI 배너·VFX 트리거용)
+	UPROPERTY(BlueprintAssignable, Category = "Combo")
+	FOnComboTriggered OnComboTriggered;
+
 	// ── 유닛 슬롯 설정 함수 ──────────────────────────────────────
 	// 테스트용: 수동으로 슬롯 지정 시 PartyInstance/MonsterGroupData 자동 로드를 무시
 	UFUNCTION(BlueprintCallable, Category = "Combat|Setup")
@@ -260,6 +268,9 @@ public:
 	// CardRowName — 기록 식별용 Row Name (NAME_None이면 Card.CardID 사용)
 	UFUNCTION(BlueprintCallable, Category = "Turn")
 	void QueuePlayerAction(const FCardDataRow& Card, int32 CasterIndex, FName CardRowName = NAME_None, AUnit* TargetOverride = nullptr);
+
+	// 카드 효과(ExecuteCard) 적용 후 콤보 조건 평가 — QueueCardAction이 ExecuteCard 다음에 호출
+	void EvaluatePlayedCardCombos(int32 CasterIndex);
 
 	// PlayerActionPhase 종료 -> EnemyPhase로 직접 전환 (카드 효과는 이미 즉시 실행됨)
 	UFUNCTION(BlueprintCallable, Category = "Turn")
@@ -314,6 +325,14 @@ private:
 	// 카드 사용 히스토리 (최대 10개, 전투 중 초기화 없음)
 	UPROPERTY()
 	TArray<FQueuedAction> ActionQueue;
+
+	// 카드 히스토리 콤보 룰 DataTable (DT_CardCombos) — 에디터에서 인스턴스에 지정
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Combo", meta = (AllowPrivateAccess = "true"))
+	UDataTable* ComboTable = nullptr;
+
+	// 콤보 평가기 — BeginPlay에서 생성, QueuePlayerAction마다 평가
+	UPROPERTY()
+	UCardComboEvaluator* ComboEvaluator = nullptr;
 
 	// EnemyPhase에서 현재 행동 중인 적 인덱스
 	int32 CurrentEnemyIndex = 0;

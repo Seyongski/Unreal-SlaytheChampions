@@ -22,7 +22,7 @@ void UEffectManager::ApplyEffect(AUnit* Target, EEffectType Type, int32 Value)
 		FinalBlock = FMath::Max(0, FinalBlock);
 		SEC->SetEffectValue(EEffectType::Shield, SEC->GetEffectValue(EEffectType::Shield) + FinalBlock);
 
-		UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Shield +%d (total: %d)"),
+		UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Shield +%d (total: %d)"),
 			*Target->GetName(), FinalBlock, SEC->GetEffectValue(EEffectType::Shield));
 		return;
 	}
@@ -43,15 +43,12 @@ void UEffectManager::ApplyBuff(AUnit* Target, EEffectType BuffType, int32 Stacks
 		return;
 	}
 
-	const int32 Before = Target->FindComponentByClass<UStatusEffectComponent>()
-		? Target->FindComponentByClass<UStatusEffectComponent>()->GetEffectValue(BuffType) : 0;
-
 	ApplyEffect(Target, BuffType, Stacks);
 
-	const int32 After = Target->FindComponentByClass<UStatusEffectComponent>()
-		? Target->FindComponentByClass<UStatusEffectComponent>()->GetEffectValue(BuffType) : 0;
+	UStatusEffectComponent* SEC = Target->FindComponentByClass<UStatusEffectComponent>();
+	const int32 After = SEC ? SEC->GetEffectValue(BuffType) : 0;
 
-	UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Buff[%d] +%d (total: %d)"),
+	UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Buff[%d] +%d (total: %d)"),
 		*Target->GetName(), Val, Stacks, After);
 }
 
@@ -67,10 +64,10 @@ void UEffectManager::ApplyDebuff(AUnit* Target, EEffectType DebuffType, int32 St
 
 	ApplyEffect(Target, DebuffType, Stacks);
 
-	const int32 After = Target->FindComponentByClass<UStatusEffectComponent>()
-		? Target->FindComponentByClass<UStatusEffectComponent>()->GetEffectValue(DebuffType) : 0;
+	UStatusEffectComponent* SEC = Target->FindComponentByClass<UStatusEffectComponent>();
+	const int32 After = SEC ? SEC->GetEffectValue(DebuffType) : 0;
 
-	UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Debuff[%d] +%d (total: %d)"),
+	UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Debuff[%d] +%d (total: %d)"),
 		*Target->GetName(), Val, Stacks, After);
 }
 
@@ -96,7 +93,7 @@ void UEffectManager::TickEffects(AUnit* Unit)
 	{
 		if (Stat) Stat->Heal(Regen);
 		SEC->SetEffectValue(EEffectType::Buff_Regen, Regen - 1);
-		UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Regen 발동: +%d HP (스택 %d -> %d)"),
+		UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Regen 발동: +%d HP (스택 %d -> %d)"),
 			*Unit->GetName(), Regen, Regen, Regen - 1);
 	}
 
@@ -104,11 +101,12 @@ void UEffectManager::TickEffects(AUnit* Unit)
 	const int32 Burn = SEC->GetEffectValue(EEffectType::Debuff_Burn);
 	if (Burn > 0)
 	{
-		ProcessDamage(Unit, Burn, nullptr);
+		// 도트 데미지 — 피격(Bleed) 트리거 없이 처리 (Bleed는 아래 시간제 틱에서 별도 1 감소)
+		ProcessDamage(Unit, Burn, nullptr, /*bIsAttack=*/false);
 		if (Unit->IsAlive())
 		{
 			SEC->SetEffectValue(EEffectType::Debuff_Burn, Burn - 1);
-			UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Burn 발동: -%d HP (스택 %d -> %d)"),
+			UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Burn 발동: -%d HP (스택 %d -> %d)"),
 				*Unit->GetName(), Burn, Burn, Burn - 1);
 		}
 	}
@@ -120,7 +118,7 @@ void UEffectManager::TickEffects(AUnit* Unit)
 		if (Val > 0)
 		{
 			SEC->SetEffectValue(Type, Val - 1);
-			UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s %s 감소: %d -> %d"),
+			UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s %s 감소: %d -> %d"),
 				*Unit->GetName(), Name, Val, Val - 1);
 		}
 	};
@@ -134,7 +132,7 @@ void UEffectManager::TickEffects(AUnit* Unit)
 // ── 데미지 파이프라인 ─────────────────────────────────────────────────────────
 
 // 순서: 공격자 AttackUp(+) → Weak(-25%) → 대상 Vulnerable(+50%) → Shield 흡수 → HP 감소
-void UEffectManager::ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker)
+void UEffectManager::ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker, bool bIsAttack)
 {
 	if (!Target || Damage <= 0) return;
 
@@ -166,7 +164,7 @@ void UEffectManager::ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker)
 			const int32 Absorbed = FMath::Min(Shield, Damage);
 			SEC->SetEffectValue(EEffectType::Shield, Shield - Absorbed);
 			Damage -= Absorbed;
-			UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s Shield 흡수: %d (남은 Shield: %d, 잔여 데미지: %d)"),
+			UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Shield 흡수: %d (남은 Shield: %d, 잔여 데미지: %d)"),
 				*Target->GetName(), Absorbed, Shield - Absorbed, Damage);
 		}
 	}
@@ -179,21 +177,18 @@ void UEffectManager::ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker)
 	}
 
 	// ── 출혈(Bleed) 발동 ─────────────────────────────────────────────────────
-	// 피격 1회마다 스택 1 감소 + 1 데미지 (Shield 흡수 여부와 무관, 직접 HP 감소로 Shield 관통)
-	if (Target->IsAlive())
+	// 피격(실제 공격) 1회마다 스택 1 감소 + 1 데미지 (Shield 흡수 여부와 무관, 직접 HP 감소로 Shield 관통)
+	// 도트(Burn 등 bIsAttack=false)는 피격으로 치지 않아 Bleed를 발동하지 않는다
+	if (bIsAttack && SEC && Target->IsAlive())
 	{
-		UStatusEffectComponent* BleedSEC = Target->FindComponentByClass<UStatusEffectComponent>();
-		if (BleedSEC)
+		const int32 Bleed = SEC->GetEffectValue(EEffectType::Debuff_Bleed);
+		if (Bleed > 0)
 		{
-			const int32 Bleed = BleedSEC->GetEffectValue(EEffectType::Debuff_Bleed);
-			if (Bleed > 0)
-			{
-				BleedSEC->SetEffectValue(EEffectType::Debuff_Bleed, Bleed - 1);
-				if (UStatComponent* BleedStat = Target->GetStat())
-					BleedStat->TakeDamage(1, nullptr);
-				UE_LOG(LogTemp, Warning, TEXT("[EffectManager] %s 출혈 발동: -1 HP (스택 %d -> %d)"),
-					*Target->GetName(), Bleed, Bleed - 1);
-			}
+			SEC->SetEffectValue(EEffectType::Debuff_Bleed, Bleed - 1);
+			if (UStatComponent* BleedStat = Target->GetStat())
+				BleedStat->TakeDamage(1, nullptr);
+			UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s 출혈 발동: -1 HP (스택 %d -> %d)"),
+				*Target->GetName(), Bleed, Bleed - 1);
 		}
 	}
 }
