@@ -1,4 +1,4 @@
-﻿,OutcomeID,ChoiceID,OutcomeOrder,OutcomeType,RewardType,RewardID,Amount
+,OutcomeID,ChoiceID,OutcomeOrder,OutcomeType,RewardType,RewardID,Amount
 30010101,30010101,300101,0,LoseHP,None,None,8
 30010102,30010102,300101,1,Reward,Relic,1008,1
 30010201,30010201,300102,0,Reward,Relic,1013,1

@@ -120,10 +120,9 @@ void ULevelManager::OnLevelStarted(UWorld* World)
 	//?붾쾭洹몄슜
 	SpawnDebugInputActor(World);
 
-	EnsureInitialStreamedLevelLoaded();
-
-	if (MapName == "GridMap" || !GetConfiguredInitialStreamedLevelName().IsNone())
+	if (ShouldBootstrapMapSystem(MapName))
 	{
+		EnsureInitialStreamedLevelLoaded();
 		HandleMapWorldEntered();
 	}
 }
@@ -230,6 +229,12 @@ FName ULevelManager::GetConfiguredInitialStreamedLevelName() const
 	}
 
 	return MapConfig->AreaLevelData->InitialStreamedLevelName;
+}
+
+bool ULevelManager::ShouldBootstrapMapSystem(const FString& MapName) const
+{
+	const FName ConfiguredInitialLevelName = GetConfiguredInitialStreamedLevelName();
+	return MapName == TEXT("NormalMap") || MapName == ConfiguredInitialLevelName.ToString();
 }
 
 void ULevelManager::EnsureInitialStreamedLevelLoaded()

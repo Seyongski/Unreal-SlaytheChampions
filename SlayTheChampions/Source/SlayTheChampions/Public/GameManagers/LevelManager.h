@@ -80,6 +80,8 @@ private:
 
     FName GetConfiguredInitialStreamedLevelName() const;
 
+    bool ShouldBootstrapMapSystem(const FString& MapName) const;
+
     void EnsureInitialStreamedLevelLoaded();
 
     void HandleMapWorldEntered();
