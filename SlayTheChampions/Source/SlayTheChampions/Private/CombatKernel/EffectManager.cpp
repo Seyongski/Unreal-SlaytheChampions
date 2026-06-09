@@ -14,12 +14,8 @@ void UEffectManager::ApplyEffect(AUnit* Target, EEffectType Type, int32 Value)
 
 	if (Type == EEffectType::Shield)
 	{
-		int32 FinalBlock = Value + SEC->GetEffectValue(EEffectType::Buff_DefenseUp);
-
-		if (SEC->GetEffectValue(EEffectType::Debuff_Frail) > 0)
-			FinalBlock = FMath::FloorToInt(FinalBlock * 0.75f);
-
-		FinalBlock = FMath::Max(0, FinalBlock);
+		// 카드 표시와 동일 계산 공유 (DefenseUp +, Frail ×0.75)
+		const int32 FinalBlock = ModifyBlockGain(Target, Value);
 		SEC->SetEffectValue(EEffectType::Shield, SEC->GetEffectValue(EEffectType::Shield) + FinalBlock);
 
 		UE_LOG(LogTemp, Log, TEXT("[EffectManager] %s Shield +%d (total: %d)"),
@@ -129,6 +125,32 @@ void UEffectManager::TickEffects(AUnit* Unit)
 	TickLog(EEffectType::Debuff_Bleed,      TEXT("Bleed"));
 }
 
+// ── 표시/계산 공용 보정 ───────────────────────────────────────────────────────
+
+int32 UEffectManager::ModifyOutgoingDamage(AUnit* Attacker, int32 BaseDamage)
+{
+	if (BaseDamage <= 0) return 0;
+	UStatusEffectComponent* SEC = Attacker ? Attacker->FindComponentByClass<UStatusEffectComponent>() : nullptr;
+	if (!SEC) return BaseDamage;
+
+	int32 D = BaseDamage + SEC->GetEffectValue(EEffectType::Buff_AttackUp);
+	if (SEC->GetEffectValue(EEffectType::Debuff_Weak) > 0)
+		D = FMath::FloorToInt(D * 0.75f);
+	return FMath::Max(0, D);
+}
+
+int32 UEffectManager::ModifyBlockGain(AUnit* Owner, int32 BaseBlock)
+{
+	if (BaseBlock <= 0) return 0;
+	UStatusEffectComponent* SEC = Owner ? Owner->FindComponentByClass<UStatusEffectComponent>() : nullptr;
+	if (!SEC) return BaseBlock;
+
+	int32 B = BaseBlock + SEC->GetEffectValue(EEffectType::Buff_DefenseUp);
+	if (SEC->GetEffectValue(EEffectType::Debuff_Frail) > 0)
+		B = FMath::FloorToInt(B * 0.75f);
+	return FMath::Max(0, B);
+}
+
 // ── 데미지 파이프라인 ─────────────────────────────────────────────────────────
 
 // 순서: 공격자 AttackUp(+) → Weak(-25%) → 대상 Vulnerable(+50%) → Shield 흡수 → HP 감소
@@ -136,19 +158,8 @@ void UEffectManager::ProcessDamage(AUnit* Target, int32 Damage, AUnit* Attacker,
 {
 	if (!Target || Damage <= 0) return;
 
-	if (Attacker)
-	{
-		UStatusEffectComponent* AttSEC = Attacker->FindComponentByClass<UStatusEffectComponent>();
-		if (AttSEC)
-		{
-			Damage += AttSEC->GetEffectValue(EEffectType::Buff_AttackUp);
-
-			if (AttSEC->GetEffectValue(EEffectType::Debuff_Weak) > 0)
-				Damage = FMath::FloorToInt(Damage * 0.75f);
-
-			Damage = FMath::Max(0, Damage);
-		}
-	}
+	// 공격자 측 보정 (카드 표시와 동일 계산 공유)
+	Damage = ModifyOutgoingDamage(Attacker, Damage);
 
 	if (Damage <= 0) return;
 

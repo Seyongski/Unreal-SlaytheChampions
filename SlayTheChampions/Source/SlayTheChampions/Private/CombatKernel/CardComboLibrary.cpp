@@ -205,7 +205,7 @@ FText UCardComboLibrary::DescribeComboReward(const FCardComboReward& Reward)
 // ── GetComboProgress 내부 헬퍼 ──────────────────────────────────────────
 namespace
 {
-	FString ComboKeyOf(const FCardDataRow& C, ECardComboMatchKey K)
+	FString ProgressKeyOf(const FCardDataRow& C, ECardComboMatchKey K)
 	{
 		switch (K)
 		{
@@ -306,10 +306,10 @@ namespace
 		}
 		else
 		{
-			const FString Key = ComboKeyOf(H[End].Card, Cond.MatchKey);
+			const FString Key = ProgressKeyOf(H[End].Card, Cond.MatchKey);
 			for (int32 i = End; i >= 0; --i)
 			{
-				if (ComboKeyOf(H[i].Card, Cond.MatchKey) == Key) ++Run;
+				if (ProgressKeyOf(H[i].Card, Cond.MatchKey) == Key) ++Run;
 				else break;
 			}
 		}

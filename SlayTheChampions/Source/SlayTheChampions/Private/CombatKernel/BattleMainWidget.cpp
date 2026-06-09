@@ -1,7 +1,9 @@
 ﻿#include "CombatKernel/BattleMainWidget.h"
 #include "CombatKernel/CombatManager.h"
 #include "CombatKernel/HandWidget.h"
+#include "CombatKernel/EffectManager.h"
 #include "Unit/Unit.h"
+#include "Unit/StatusEffectComponent.h"
 #include "Card/CardUserComponent.h"
 #include "Card/CardSubsystem.h"
 #include "Components/TextBlock.h"
@@ -151,6 +153,10 @@ void UBattleMainWidget::HandlePlayerClicked(AUnit* Unit)
 
 	OnPlayerSelected(Unit);
 
+	// 선택 플레이어의 버프/디버프 수치 변경 구독 → 카드 데미지/방어 표시 실시간 갱신
+	if (UStatusEffectComponent* SEC = Unit->FindComponentByClass<UStatusEffectComponent>())
+		SEC->OnEffectValueChanged.AddDynamic(this, &UBattleMainWidget::HandleCasterEffectChanged);
+
 	// 새 유닛의 CardUserComponent 바인딩 및 현재 손패 즉시 표시
 	UCardUserComponent* CardComp = Unit->FindComponentByClass<UCardUserComponent>();
 	if (CardComp)
@@ -214,7 +220,26 @@ void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 		for (const FName& Name : CardNames)
 		{
 			const FCardDataRow* Row = CS->GetCard(Name);
-			if (Row) Cards.Add(*Row);
+			if (!Row) continue;
+
+			// 선택 플레이어의 버프/디버프를 반영한 표시값으로 보정 (실제 발동과 동일 계산)
+			FCardDataRow Card = *Row;
+			Card.Damage = UEffectManager::ModifyOutgoingDamage(SelectedUnit, Card.Damage);
+			Card.Block  = UEffectManager::ModifyBlockGain(SelectedUnit, Card.Block);
+
+			// Description 템플릿 치환 — 설명에 {Damage}/{Block}/{Heal}/{Draw}/{Cost} 자리표시자가 있으면
+			// 보정된 값으로 바뀐다. 자리표시자가 없는 설명은 그대로 유지(하위 호환).
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Damage"), Card.Damage);
+				Args.Add(TEXT("Block"),  Card.Block);
+				Args.Add(TEXT("Heal"),   Card.HealAmount);
+				Args.Add(TEXT("Draw"),   Card.DrawCount);
+				Args.Add(TEXT("Cost"),   Card.Cost);
+				Card.Description = FText::Format(Card.Description, Args);
+			}
+
+			Cards.Add(Card);
 		}
 	}
 
@@ -234,6 +259,22 @@ void UBattleMainWidget::HandleHandChanged(const TArray<FName>& CardNames)
 	}
 	else
 		OnHandUpdated(Cards);
+}
+
+// 선택 플레이어의 버프/디버프 수치 변경 수신
+// 카드 데미지/방어 표시에 영향을 주는 효과(AttackUp/Weak/DefenseUp/Frail)일 때만 손패 재표시
+void UBattleMainWidget::HandleCasterEffectChanged(EEffectType Type, int32 OldValue, int32 NewValue)
+{
+	if (!SelectedUnit) return;
+
+	if (Type != EEffectType::Buff_AttackUp  &&
+		Type != EEffectType::Debuff_Weak    &&
+		Type != EEffectType::Buff_DefenseUp &&
+		Type != EEffectType::Debuff_Frail)
+		return;
+
+	if (UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>())
+		HandleHandChanged(CardComp->GetHand());
 }
 
 // HandPanel::OnCardSelected 수신
@@ -585,6 +626,10 @@ void UBattleMainWidget::DeselectCurrentPlayer()
 	UCardUserComponent* CardComp = SelectedUnit->FindComponentByClass<UCardUserComponent>();
 	if (CardComp)
 		CardComp->OnHandChanged.RemoveDynamic(this, &UBattleMainWidget::HandleHandChanged);
+
+	// 버프 수치 변경 구독 해제
+	if (UStatusEffectComponent* SEC = SelectedUnit->FindComponentByClass<UStatusEffectComponent>())
+		SEC->OnEffectValueChanged.RemoveDynamic(this, &UBattleMainWidget::HandleCasterEffectChanged);
 
 	SelectedUnit = nullptr;
 }

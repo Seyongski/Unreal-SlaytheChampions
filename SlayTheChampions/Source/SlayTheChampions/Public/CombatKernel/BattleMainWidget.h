@@ -134,6 +134,10 @@ private:
 	UFUNCTION()
 	void HandleHandChanged(const TArray<FName>& CardNames);
 
+	// 선택 플레이어의 버프/디버프 수치 변경 수신 → 데미지/방어 영향 효과면 손패 재표시
+	UFUNCTION()
+	void HandleCasterEffectChanged(EEffectType Type, int32 OldValue, int32 NewValue);
+
 	// HandPanel::OnCardSelected 수신 → 코스트 검증 후 선택 대기 상태로 전환
 	UFUNCTION()
 	void HandleCardClicked(FName CardName, UCardWidget* ClickedCard);

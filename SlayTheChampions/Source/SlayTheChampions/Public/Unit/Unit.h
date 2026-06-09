@@ -28,6 +28,9 @@ class UCapsuleComponent;
 // 유닛 클릭 시 브로드캐스트 — BattleMainWidget이 구독해 선택 처리
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitClicked, AUnit*, Unit);
 
+// 마우스 호버 시작(true)/종료(false) — 선택 가능 표시(외곽선 등)에 사용
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHovered, AUnit*, Unit, bool, bHovered);
+
 UCLASS()
 class SLAYTHECHAMPIONS_API AUnit : public APawn
 {
@@ -99,6 +102,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Unit")
 	FOnUnitClicked OnUnitClicked;
 
+	// 마우스 호버 시작(true)/종료(false) 시 브로드캐스트 (bGenerateMouseOverEvents 활성화 필요)
+	UPROPERTY(BlueprintAssignable, Category = "Unit")
+	FOnUnitHovered OnUnitHovered;
+
+	// 호버 외곽선 스텐실 값 — 포스트프로세스 외곽선 머티리얼이 이 값으로 대상을 구분 (팀별 색 등)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Unit|Hover")
+	int32 HoverStencilValue = 1;
+
 	// 마우스 클릭 감지 전용 캡슐 — Visibility 채널만 Block해 클릭 반경을 넓힘
 	// BP에서 캡슐 크기(HalfHeight, Radius)를 유닛마다 조정 가능
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit")
@@ -125,7 +136,14 @@ protected:
 	// 마우스 클릭 시 OnUnitClicked 브로드캐스트
 	virtual void NotifyActorOnClicked(FKey ButtonPressed) override;
 
+	// 마우스 커서 진입/이탈 시 외곽선 토글 + OnUnitHovered 브로드캐스트
+	virtual void NotifyActorBeginCursorOver() override;
+	virtual void NotifyActorEndCursorOver() override;
+
 private:
+
+	// 모든 MeshComponent의 Custom Depth 렌더링을 켜고/꺼서 외곽선 표시
+	void SetHoverOutline(bool bEnabled);
 
 	// GetStat() 캐싱용 — BeginPlay에서 설정. 미보유 유닛이면 nullptr 유지
 	UPROPERTY()
