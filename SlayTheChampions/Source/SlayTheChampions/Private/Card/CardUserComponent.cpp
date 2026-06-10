@@ -5,6 +5,8 @@
 #include "Card/CardDataTypes.h"
 #include "GameManagers/CardManager.h"
 #include "Engine/GameInstance.h"
+#include "CombatKernel/CombatManager.h"
+#include "Kismet/GameplayStatics.h"
 
 UCardUserComponent::UCardUserComponent()
 {
@@ -142,20 +144,49 @@ bool UCardUserComponent::PlayCard(FName CardName)
         return false;
     }
 
+    // CardSubsystem 에서 카드 데이터 조회 (효과 실행에 필요)
+    const FCardDataRow* Row = nullptr;
+    if (UGameInstance* GI = GetWorld()->GetGameInstance())
+    {
+        if (UCardSubsystem* CS = GI->GetSubsystem<UCardSubsystem>())
+            Row = CS->GetCard(CardName);
+    }
+
+    if (!Row)
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("[CardUserComponent] PlayCard - '%s' card data not found in CardSubsystem."),
+            *CardName.ToString());
+        return false;
+    }
+
     // Hand 에서 제거
     Hand.RemoveAt(Idx);
 
     if (DeckComponent)
     {
         // bExhaust 카드면 ExhaustPile(소멸), 일반 카드면 DiscardPile(버리기)
-        if (IsExhaustCard(CardName))
-        {
+        if (Row->bExhaust)
             DeckComponent->ExhaustCard(CardName);
-        }
         else
-        {
             DeckComponent->DiscardCard(CardName);
-        }
+    }
+
+    // CombatManager 의 ActionQueue(히스토리)에 카드 등록 — 효과 실행은 포함되지 않음
+    // (실제 효과 실행은 BattleMainWidget::QueueCardAction → ExecuteCard 에서 즉시 처리)
+    ACombatManager* CombatMgr = Cast<ACombatManager>(
+        UGameplayStatics::GetActorOfClass(GetWorld(), ACombatManager::StaticClass()));
+    if (CombatMgr)
+    {
+        CombatMgr->QueuePlayerAction(*Row, PawnIndex);
+        UE_LOG(LogTemp, Warning,
+            TEXT("[CardUserComponent] Pawn%d - '%s' queued to CombatManager."),
+            PawnIndex, *CardName.ToString());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("[CardUserComponent] PlayCard - CombatManager not found in world."));
     }
 
     // 카드 사용 이벤트 및 Hand 변경 이벤트 브로드캐스트
