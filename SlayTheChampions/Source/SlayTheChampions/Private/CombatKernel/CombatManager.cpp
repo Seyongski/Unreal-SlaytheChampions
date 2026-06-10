@@ -5,6 +5,7 @@
 #include "Camera/CameraActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"  // 중복 BattleMainWidget 탐지(GetAllWidgetsOfClass)
 #include "Unit/Unit.h"
 #include "Unit/StatComponent.h"
 #include "Unit/StatusEffectComponent.h"
@@ -271,11 +272,32 @@ void ACombatManager::InitCombat()
 	// 유닛 등록 완료 후 생성 — Event Construct에서 GetSpawnedPlayers/Enemies가 유효한 값을 반환하도록
 	if (BattleWidgetClass && PC)
 	{
-		BattleWidget = CreateWidget<UBattleMainWidget>(PC, BattleWidgetClass);
+		// 중복 방지: 이미 BattleMainWidget이 떠 있으면(레벨에 CombatManager 2개 / 레벨·HUD BP가
+		// 위젯을 따로 Create하는 경우) 새로 만들지 않고 재사용 → 손패가 2개로 보이는 문제 차단
+		TArray<UUserWidget*> Existing;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Existing, UBattleMainWidget::StaticClass(), false);
+		for (UUserWidget* W : Existing)
+		{
+			if (UBattleMainWidget* BW = Cast<UBattleMainWidget>(W))
+			{
+				BattleWidget = BW;
+				break;
+			}
+		}
+
 		if (BattleWidget)
-			BattleWidget->AddToViewport();
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 기존 BattleMainWidget 재사용 — 중복 생성 방지. "
+				"레벨에 CombatManager가 2개이거나 BP가 위젯을 따로 생성하는지 확인하세요."));
+		}
 		else
-			UE_LOG(LogTemp, Error, TEXT("[CombatManager] BattleWidget creation failed"));
+		{
+			BattleWidget = CreateWidget<UBattleMainWidget>(PC, BattleWidgetClass);
+			if (BattleWidget)
+				BattleWidget->AddToViewport();
+			else
+				UE_LOG(LogTemp, Error, TEXT("[CombatManager] BattleWidget creation failed"));
+		}
 	}
 
 	// 수동 세팅 사용 중이면 화면 좌상단에 표시
