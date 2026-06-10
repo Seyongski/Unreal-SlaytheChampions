@@ -96,6 +96,9 @@ protected:
 	// MainCanvas가 ESlateVisibility::Visible일 때만 동작
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
+	// 타겟팅 중 커서 아래 유닛을 직접 트레이스해 외곽선 토글 (MainCanvas가 커서 오버를 막으므로)
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 	// 현재 턴 수 표시 텍스트 (BindWidget)
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* Text_TurnCount;
@@ -185,4 +188,8 @@ private:
 
 	// 손패 초과분 정리 중 플래그 — RemoveFromHand의 OnHandChanged 재방송으로 인한 재귀 차단
 	bool bTrimmingHand = false;
+
+	// 타겟팅 중 외곽선 강조 중인 유닛 (커서 이동 시 갱신, 대기 해제 시 초기화)
+	UPROPERTY()
+	AUnit* TargetHoverUnit = nullptr;
 };

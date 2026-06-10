@@ -125,6 +125,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Unit")
 	bool IsAlive() const;
 
+	// 외곽선 강조 수동 토글 — 타겟팅 중 MainCanvas가 커서 오버를 막을 때 위젯이 직접 호출
+	UFUNCTION(BlueprintCallable, Category = "Unit|Hover")
+	void SetHoverHighlight(bool bEnabled) { SetHoverOutline(bEnabled); }
+
 	// HP가 필요 없는 유닛도 Unit을 베이스로 쓸 수 있으므로, StatComponent가 없으면 nullptr을 유지한다.
 	// (캐싱하더라도 미보유 유닛은 계속 nullptr — 호출 측에서 null 체크로 분기)
 

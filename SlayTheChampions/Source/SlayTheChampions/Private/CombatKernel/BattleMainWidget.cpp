@@ -522,6 +522,45 @@ void UBattleMainWidget::HandleBackClicked()
 	OnReturnToMainScreen();
 }
 
+// 타겟팅 중 커서 아래 유닛을 직접 트레이스해 외곽선 강조
+// (MainCanvas가 Visible이라 유닛의 NotifyActorBeginCursorOver가 안 오므로 위젯이 대신 처리)
+FReply UBattleMainWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!PendingCardName.IsNone() && CombatManager)
+	{
+		AUnit* HitUnit = nullptr;
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			FHitResult Hit;
+			if (PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+				HitUnit = Cast<AUnit>(Hit.GetActor());
+			if (!HitUnit && PC->GetHitResultUnderCursor(ECC_Pawn, false, Hit))
+				HitUnit = Cast<AUnit>(Hit.GetActor());
+		}
+
+		// 카드 타입에 맞는 진영의 살아있는 유닛만 유효 타겟
+		AUnit* NewHover = nullptr;
+		if (HitUnit && HitUnit->IsAlive())
+		{
+			const bool bIsEnemy  = CombatManager->GetSpawnedEnemies().Contains(HitUnit);
+			const bool bIsPlayer = CombatManager->GetSpawnedPlayers().Contains(HitUnit);
+			if ((PendingCardData.TargetType == ETargetType::SingleEnemy && bIsEnemy) ||
+				(PendingCardData.TargetType == ETargetType::SingleAlly  && bIsPlayer))
+				NewHover = HitUnit;
+		}
+
+		// 강조 대상이 바뀌었을 때만 토글
+		if (NewHover != TargetHoverUnit)
+		{
+			if (TargetHoverUnit) TargetHoverUnit->SetHoverHighlight(false);
+			if (NewHover)        NewHover->SetHoverHighlight(true);
+			TargetHoverUnit = NewHover;
+		}
+	}
+
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
 // 타겟 대기 중 빈 영역 또는 유효하지 않은 위치 클릭 시 대기 카드 취소
 // 유닛이 클릭된 경우에는 기존 HandleEnemyClicked / HandlePlayerClicked 흐름에 위임
 FReply UBattleMainWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -577,6 +616,13 @@ FReply UBattleMainWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 void UBattleMainWidget::CancelPendingCard()
 {
 	if (PendingCardName.IsNone()) return;
+
+	// 타겟팅 중 강조하던 유닛 외곽선 해제
+	if (TargetHoverUnit)
+	{
+		TargetHoverUnit->SetHoverHighlight(false);
+		TargetHoverUnit = nullptr;
+	}
 
 	// 타입에 따라 올바른 카메라 복귀 델리게이트 브로드캐스트
 	if (CombatManager)
