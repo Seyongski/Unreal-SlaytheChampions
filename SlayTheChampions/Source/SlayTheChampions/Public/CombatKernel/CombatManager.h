@@ -79,6 +79,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyPhaseStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyActionFinished, int32, EnemyIndex);
 // 카드 히스토리 콤보 발동 시 브로드캐스트 (UI 배너·VFX·사운드 트리거용)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnComboTriggered, FName, ComboID, int32, CasterIndex);
+// 전투 종료 시 브로드캐스트 (bWon: 승리 여부) — MainLevel/RunSystem이 레벨 숨김·복귀에 사용
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatEnded, bool, bWon);
 
 /**
  * ACombatManager
@@ -144,6 +146,11 @@ public:
 	// 스폰 후 직업(JobComponent·CardUserComponent의 JobClass)만 챔피언별로 주입
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
 	TSubclassOf<AUnit> PlayerActorClass;
+
+	// true면 BeginPlay에서 자동으로 BeginCombat 호출 (직접 플레이/테스트 레벨용).
+	// 스트리밍으로 프리로드되는 전투 레벨은 false로 두고, LevelManager가 활성화(OnLevelShown) 시 BeginCombat 호출.
+	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
+	bool bAutoBeginCombat = true;
 
 	// ── 스폰 수 ──────────────────────────────────────────────────
 	// 전투에 참여할 플레이어 수 (1~3)
@@ -257,6 +264,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Combo")
 	FOnComboTriggered OnComboTriggered;
 
+	// 전투 종료 시 (bWon) — MainLevel/RunSystem이 구독해 레벨 숨김·복귀 처리
+	UPROPERTY(BlueprintAssignable, Category = "Turn")
+	FOnCombatEnded OnCombatEnded;
+
 	// ── 유닛 슬롯 설정 함수 ──────────────────────────────────────
 	// 테스트용: 수동으로 슬롯 지정 시 PartyInstance/EnemyTable 자동 로드를 무시
 	UFUNCTION(BlueprintCallable, Category = "Combat|Setup")
@@ -265,8 +276,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Setup")
 	void SetEnemyActor(int32 Index, AUnit* Actor);
 
-	// ── 전투 초기화 ───────────────────────────────────────────────
-	// SetPlayerActor/SetEnemyActor로 슬롯 설정 후 수동 호출
+	// ── 전투 생명주기 ─────────────────────────────────────────────
+	// 레벨 활성화 시 호출 — 상태 리셋 후 전투 초기화(스폰·위젯·턴 시작).
+	// LevelManager가 OnLevelShown에서, 또는 bAutoBeginCombat=true면 BeginPlay에서 호출.
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void BeginCombat();
+
+	// 전투 종료 — BattleMainWidget 제거 + 이 매니저가 스폰한 유닛 정리 + OnCombatEnded 브로드캐스트.
+	// CheckCombatEnd가 전멸을 감지하면 자동 호출. 외부에서 강제 종료에도 사용 가능.
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void EndCombat(bool bWon);
+
+	// 내부 전투 초기화 (BeginCombat이 리셋 후 호출). 직접 호출 비권장.
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void InitCombat();
 
@@ -364,6 +385,13 @@ private:
 	// InitCombat 재진입 차단 — 스폰된 적(BP_Enemy)의 BeginPlay가 InitCombat을 재호출해
 	// 무한 재귀로 적을 계속 스폰하는 문제를 막는다 (가드는 스폰 전에 세움)
 	bool bCombatInitialized = false;
+
+	// 전투 종료 1회 가드 — CheckCombatEnd가 여러 번 불려도 EndCombat은 한 번만, 종료 후 턴 진행 차단
+	bool bCombatEnded = false;
+
+	// 이 CombatManager가 스폰한 유닛 (EndCombat에서 Destroy) — 레벨에 직접 배치한 유닛은 포함하지 않음
+	UPROPERTY()
+	TArray<AUnit*> ManagerSpawnedUnits;
 
 	// 적 행동 딜레이 타이머
 	FTimerHandle EnemyTimerHandle;

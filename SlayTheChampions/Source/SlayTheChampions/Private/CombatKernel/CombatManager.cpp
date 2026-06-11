@@ -107,13 +107,63 @@ void ACombatManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 콤보 평가기 생성 (전투마다 새로 생성되어 상태 초기화됨). ComboTable 미지정 시에도 안전
+	// 직접 플레이/테스트 레벨은 BeginPlay에서 자동 시작.
+	// 스트리밍으로 프리로드되는 전투 레벨은 bAutoBeginCombat=false로 두고
+	// LevelManager가 활성화(OnLevelShown) 시 BeginCombat을 호출한다.
+	// (한 틱 미룸 — GameMode 등 다른 액터의 BeginPlay가 PartyInstance를 채운 뒤 읽도록)
+	if (bAutoBeginCombat)
+		GetWorldTimerManager().SetTimerForNextTick(this, &ACombatManager::BeginCombat);
+}
+
+// 레벨 활성화 시 진입점 — 상태를 리셋하고 전투를 새로 초기화한다.
+void ACombatManager::BeginCombat()
+{
+	// 이미 전투가 진행 중이면 중복 호출 무시 (BeginPlay 자동 시작 + LevelManager 트리거 겹침 방지).
+	// 종료된 전투(bCombatEnded)는 재시작 허용.
+	if (bCombatInitialized && !bCombatEnded) return;
+
+	// 이전 전투 종료 상태 해제 → 재초기화 허용
+	bCombatInitialized = false;
+	bCombatEnded = false;
+	TurnCount = 0;
+	ActionQueue.Empty();
+
+	// 콤보 평가기 새로 생성 (전투마다 상태 초기화). ComboTable 미지정 시에도 안전
 	ComboEvaluator = NewObject<UCardComboEvaluator>(this);
 	ComboEvaluator->Initialize(this, ComboTable);
 
-	// InitCombat을 한 틱 미룬다 — GameMode 등 다른 액터의 BeginPlay(PartyInstance.ChampionJobs 채우기,
-	// RegisterChampion 등)가 모두 끝난 뒤 읽도록 보장. 즉시 호출하면 타이밍 레이스로 빈 목록을 읽음.
-	GetWorldTimerManager().SetTimerForNextTick(this, &ACombatManager::InitCombat);
+	InitCombat();
+}
+
+// 전투 종료 — 위젯 제거 + 스폰 유닛 정리 + 종료 알림. CheckCombatEnd가 전멸 시 호출.
+void ACombatManager::EndCombat(bool bWon)
+{
+	if (bCombatEnded) return;   // 1회만
+	bCombatEnded = true;
+
+	// 적 행동 딜레이 타이머 정지
+	GetWorldTimerManager().ClearTimer(EnemyTimerHandle);
+
+	// BattleMainWidget 제거
+	if (BattleWidget)
+	{
+		BattleWidget->RemoveFromParent();
+		BattleWidget = nullptr;
+	}
+
+	// 이 매니저가 스폰한 유닛만 정리 (레벨 직접 배치 유닛은 건드리지 않음)
+	for (AUnit* U : ManagerSpawnedUnits)
+		if (IsValid(U)) U->Destroy();
+	ManagerSpawnedUnits.Empty();
+
+	SpawnedPlayers.Empty();
+	SpawnedEnemies.Empty();
+	EnemyActionWidgetComps.Empty();
+
+	bCombatInitialized = false;   // 다음 BeginCombat 허용
+
+	UE_LOG(LogTemp, Log, TEXT("[CombatManager] 전투 종료 (승리=%s)"), bWon ? TEXT("true") : TEXT("false"));
+	OnCombatEnded.Broadcast(bWon);
 }
 
 // 매 프레임 적 행동 위젯을 카메라를 향해 회전 — 머리 위 3D 배치를 유지한 채 빌보드 처리
@@ -203,6 +253,7 @@ void ACombatManager::InitCombat()
 					PlayerActorClass, PlayerBoxes[i]->GetComponentTransform(), PlayerParams);
 				*PlayerSlots[i] = Spawned;
 				if (!Spawned) continue;
+				ManagerSpawnedUnits.Add(Spawned);   // EndCombat에서 정리
 
 				const EJobClass Job = Jobs[i];
 				// 덱 로드용 직업 — InitializeDeck(등록 루프)보다 먼저 세팅돼야 올바른 덱 로드
@@ -293,6 +344,7 @@ void ACombatManager::InitCombat()
 			AUnit* Actor = GetWorld()->SpawnActor<AUnit>(
 				EnemyActorClass, EnemyBoxes[i]->GetComponentTransform(), SpawnParams);
 			if (!Actor) continue;
+			ManagerSpawnedUnits.Add(Actor);   // EndCombat에서 정리
 
 			Actor->UnitID = ID;
 			if (UEnemyInitializerComponent* Init = Actor->FindComponentByClass<UEnemyInitializerComponent>())
@@ -527,10 +579,11 @@ void ACombatManager::ExecuteCard(const FCardDataRow& Card, int32 CasterIndex, AU
 	CheckCombatEnd();
 }
 
-// 모든 적 또는 플레이어의 생존 여부를 확인하고 결과를 로그로 출력
-// TODO: 승리/패배 화면 구현 시 여기서 페이즈 진행 중단 처리 추가
+// 모든 적/플레이어의 생존 여부를 확인하고, 전멸 시 EndCombat으로 전투를 종료한다.
 void ACombatManager::CheckCombatEnd()
 {
+	if (bCombatEnded) return;   // 이미 종료됨
+
 	// 살아있는 적이 한 명도 없으면 전투 승리
 	const bool bAllEnemiesDead = SpawnedEnemies.Num() > 0 &&
 		!SpawnedEnemies.ContainsByPredicate([](AUnit* U){ return U && U->IsAlive(); });
@@ -538,7 +591,7 @@ void ACombatManager::CheckCombatEnd()
 	if (bAllEnemiesDead)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 모든 적 사망 — 전투 승리"));
-		// TODO: 전투 종료 처리 (승리 화면, 보상 등) 구현 시 여기서 페이즈 진행 중단
+		EndCombat(true);
 		return;
 	}
 
@@ -549,7 +602,7 @@ void ACombatManager::CheckCombatEnd()
 	if (bAllPlayersDead)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[CombatManager] 모든 플레이어 사망 — 게임 오버"));
-		// TODO: 게임 오버 처리 (패배 화면 등) 구현 시 여기서 페이즈 진행 중단
+		EndCombat(false);
 	}
 }
 
@@ -557,6 +610,7 @@ void ACombatManager::CheckCombatEnd()
 void ACombatManager::SetPhase(ETurnPhase NewPhase)
 {
 	CheckCombatEnd();
+	if (bCombatEnded) return;   // 전멸로 종료됐으면 페이즈 진행 중단
 
 	CurrentPhase = NewPhase;
 	OnPhaseChanged.Broadcast(NewPhase);
@@ -604,6 +658,8 @@ void ACombatManager::TickBuffsAndDebuffs(const TArray<AUnit*>& Units)
 // 턴 카운트를 올리고 DrawPhase → PlayerActionPhase 순서로 진행
 void ACombatManager::StartTurn()
 {
+	if (bCombatEnded) return;   // 종료된 전투는 새 턴 시작 안 함
+
 	TurnCount++;
 	UE_LOG(LogTemp, Log, TEXT("[CombatManager] Turn %d 시작"), TurnCount);
 
@@ -663,6 +719,7 @@ void ACombatManager::EvaluatePlayedCardCombos(int32 CasterIndex)
 // 플레이어 행동 입력을 종료하고 적 턴으로 직접 전환 (카드 효과는 이미 즉시 실행됨)
 void ACombatManager::EndPlayerActionPhase()
 {
+	if (bCombatEnded) return;
 	if (CurrentPhase != ETurnPhase::PlayerActionPhase) return;
 	StartEnemyPhase();
 }
@@ -670,6 +727,7 @@ void ACombatManager::EndPlayerActionPhase()
 // 적 턴 페이즈를 시작하고 첫 번째 적부터 행동을 진행
 void ACombatManager::StartEnemyPhase()
 {
+	if (bCombatEnded) return;
 	CurrentEnemyIndex = 0;
 	SetPhase(ETurnPhase::EnemyPhase);
 
@@ -686,6 +744,8 @@ void ACombatManager::StartEnemyPhase()
 // 모든 적이 행동 완료되면 다음 턴을 시작
 void ACombatManager::ExecuteNextEnemyAction()
 {
+	if (bCombatEnded) return;   // 전투 종료 시 적 행동 진행 중단
+
 	// 죽은 적 건너뜀
 	while (SpawnedEnemies.IsValidIndex(CurrentEnemyIndex) &&
 		   (!SpawnedEnemies[CurrentEnemyIndex] || !SpawnedEnemies[CurrentEnemyIndex]->IsAlive()))
