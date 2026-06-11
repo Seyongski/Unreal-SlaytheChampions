@@ -111,7 +111,9 @@ void ACombatManager::BeginPlay()
 	ComboEvaluator = NewObject<UCardComboEvaluator>(this);
 	ComboEvaluator->Initialize(this, ComboTable);
 
-	InitCombat();
+	// InitCombat을 한 틱 미룬다 — GameMode 등 다른 액터의 BeginPlay(PartyInstance.ChampionJobs 채우기,
+	// RegisterChampion 등)가 모두 끝난 뒤 읽도록 보장. 즉시 호출하면 타이밍 레이스로 빈 목록을 읽음.
+	GetWorldTimerManager().SetTimerForNextTick(this, &ACombatManager::InitCombat);
 }
 
 // 매 프레임 적 행동 위젯을 카메라를 향해 회전 — 머리 위 3D 배치를 유지한 채 빌보드 처리
