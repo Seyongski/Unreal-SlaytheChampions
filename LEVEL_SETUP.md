@@ -30,8 +30,9 @@ LevelManager(C++)가 레벨을 보이게 함
 |---|---|---|
 | **bAutoBeginCombat** | **false** | ⚠️ 스트리밍은 반드시 false (LevelManager가 활성화 시 BeginCombat). true면 직접 PIE 테스트용 |
 | `EnemyTable` | 적 도감 DataAsset (UEnemyDataTable) | 적 데이터 출처 |
-| `Encounter` | 인카운터 DataAsset (UEncounterData) | 이번 전투 등장 EnemyID 목록 |
-| `EncounterEnemyIDs` | (비움) | Encounter 없을 때만 쓰는 인라인 목록 |
+| `StageEncounterTable` | 스테이지 인카운터 DataTable (FStageEncounterRow) | 방 타입별 적 구성 (3-1 참고) |
+| `CombatAreaType` | 이 레벨의 방 타입 (Normal/Elite/Boss) | 테이블 행 필터 |
+| `EncounterEnemyIDs` | (비움) | 테이블 없을 때만 쓰는 인라인 테스트 목록 |
 | `EnemyActorClass` | BP_Enemy | 스폰할 제네릭 적 액터 |
 | `PlayerActorClass` | BP_Player | 스폰할 단일 플레이어 액터 |
 | `BattleWidgetClass` | WBP_BattleMainWidget | 전투 UI |
@@ -42,15 +43,48 @@ LevelManager(C++)가 레벨을 보이게 함
 
 ---
 
-## 3. 적 데이터 (도감 + 인카운터)
+## 3. 적 데이터 (도감)
 
 - **UEnemyDataTable** (도감): `Entries` 배열에 적별 풀스펙(EnemyID, MaxHP, Pattern, Gimmick, StartingEffects, VisualData) 작성.
-- **UEncounterData** (인카운터): `EnemyIDs`에 이번 전투 등장 EnemyID 나열 (최대 3, 박스 순서대로).
-- CombatManager가 `Encounter.EnemyIDs` → `EnemyTable.FindByID` → BP_Enemy 스폰 후 `InitializeFromDefinition`으로 데이터 주입.
+- 어떤 적이 어느 방에 나오는지는 **StageEncounterTable**에서 결정 (아래 3-1).
+- CombatManager가 뽑힌 EnemyID들 → `EnemyTable.FindByID` → BP_Enemy 스폰 후 `InitializeFromDefinition`으로 데이터 주입.
 
 > BP_Enemy의 `EnemyInitializerComponent.Table`은 비워도 됨 (CombatManager가 직접 주입).
 
 ---
+
+## 3-1. 스테이지 인카운터 (방 타입별 랜덤 선택)
+
+방 타입(Normal/Elite/Boss)에 따라 인카운터를 **가중치 랜덤**으로 뽑는 방식. DataTable 기반.
+
+**데이터 계층**: `EnemyTable`(도감) → `StageEncounterTable`(등장 규칙 + 적 구성 직접 기재)
+
+**StageEncounterTable** = DataTable, Row 구조체 `FStageEncounterRow`:
+| 컬럼 | 의미 |
+|---|---|
+| `AreaType` | 이 인카운터가 나오는 방 타입 (Normal/Elite/Boss...) |
+| `EnemyIDs` | **이 행에서 스폰할 EnemyID 목록** (EnemyTable에 있는 ID, 최대 3, 박스 순서) |
+| `Weight` | 가중치 (클수록 자주) — 확률 = 행 Weight ÷ 후보 Weight 합 |
+| `MinFloor` / `MaxFloor` | 등장 가능 층 범위 |
+
+> EncounterData 에셋을 거치지 않고 **행에 EnemyID를 직접** 적습니다.
+
+**CombatManager 설정** (레벨별 또는 런타임 주입):
+| 프로퍼티 | 의미 |
+|---|---|
+| `StageEncounterTable` | 위 DataTable 지정 (지정 시 EncounterEnemyIDs 인라인보다 우선) |
+| `CombatAreaType` | 이 레벨의 방 타입 (NormalMap=Normal, BossMap=Boss 등) |
+| `CombatFloor` | 이 전투의 층 (Min/MaxFloor 필터) |
+| `SetStageEncounterTable()` / `SetCombatArea()` | 런타임 주입용 함수 |
+
+**선택 우선순위 (BeginCombat)**:
+```
+StageEncounterTable(방 타입+층 가중치 랜덤) > EncounterEnemyIDs(인라인 테스트)
+```
+- 테이블 지정 시 → 방 타입에 맞는 행 중 가중치 랜덤 → 그 행의 EnemyIDs로 스폰
+- 미지정 시 → 인라인 EncounterEnemyIDs 폴백 (테스트용)
+
+> 보스 고정(런 시작 시 1개 확정)은 옵션으로 추후 추가 예정 — 현재는 Boss도 풀에서 랜덤.
 
 ## 4. 플레이어 데이터 (PartyInstance)
 
@@ -103,7 +137,7 @@ LevelManager(C++)가 레벨을 보이게 함
 ## 8. 빠른 체크리스트
 
 - [ ] 전투 레벨 CombatManager: `bAutoBeginCombat = false`
-- [ ] `EnemyTable` / `Encounter`(또는 `EncounterEnemyIDs`) / `EnemyActorClass` / `PlayerActorClass` 지정
+- [ ] `EnemyTable` / `StageEncounterTable` + `CombatAreaType`(또는 `EncounterEnemyIDs`) / `EnemyActorClass` / `PlayerActorClass` 지정
 - [ ] PlayerActor/EnemyActor 슬롯 비움
 - [ ] PartyInstance에 전투 진입 전 `Add Champion` 호출
 - [ ] BP_Player / BP_Enemy 필수 컴포넌트 확인

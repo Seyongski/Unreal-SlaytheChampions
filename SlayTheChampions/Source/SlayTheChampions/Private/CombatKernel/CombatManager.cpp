@@ -17,7 +17,8 @@
 #include "Unit/Enemy/IntentComponent.h"
 #include "Unit/Enemy/EnemyDataTable.h"               // EnemyTable 스폰 경로 (FEnemyDefinition·FindByID)
 #include "Unit/Enemy/EnemyInitializerComponent.h"    // 스폰된 적에 Table+EnemyID 주입
-#include "CombatKernel/EncounterData.h"              // 이번 전투 적 ID 목록 에셋
+#include "CombatKernel/StageEncounterTypes.h"        // 스테이지 인카운터 테이블 행 (FStageEncounterRow)
+#include "Engine/DataTable.h"
 #include "Components/BoxComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Card/CardUserComponent.h"  // 스폰된 플레이어에 PawnIndex 주입 및 드로우 호출용
@@ -164,6 +165,43 @@ void ACombatManager::EndCombat(bool bWon)
 
 	UE_LOG(LogTemp, Log, TEXT("[CombatManager] 전투 종료 (승리=%s)"), bWon ? TEXT("true") : TEXT("false"));
 	OnCombatEnded.Broadcast(bWon);
+}
+
+// StageEncounterTable에서 CombatAreaType/CombatFloor에 맞는 행을 가중치 랜덤으로 골라 반환
+const FStageEncounterRow* ACombatManager::PickEncounterFromTable() const
+{
+	if (!StageEncounterTable) return nullptr;
+
+	TArray<FStageEncounterRow*> Rows;
+	StageEncounterTable->GetAllRows<FStageEncounterRow>(TEXT("CombatManager::PickEncounterFromTable"), Rows);
+
+	// 방 타입 + 층 범위로 후보 필터링 (적이 1마리도 없는 행은 제외)
+	TArray<FStageEncounterRow*> Candidates;
+	float TotalWeight = 0.f;
+	for (FStageEncounterRow* Row : Rows)
+	{
+		if (!Row || Row->EnemyIDs.Num() == 0) continue;
+		if (Row->AreaType != CombatAreaType) continue;
+		if (CombatFloor < Row->MinFloor || CombatFloor > Row->MaxFloor) continue;
+
+		Candidates.Add(Row);
+		TotalWeight += FMath::Max(0.f, Row->Weight);
+	}
+
+	if (Candidates.Num() == 0) return nullptr;
+
+	// 가중치가 모두 0이면 균등 랜덤
+	if (TotalWeight <= 0.f)
+		return Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+
+	// 가중치 기반 랜덤
+	float Roll = FMath::FRandRange(0.f, TotalWeight);
+	for (FStageEncounterRow* Row : Candidates)
+	{
+		Roll -= FMath::Max(0.f, Row->Weight);
+		if (Roll <= 0.f) return Row;
+	}
+	return Candidates.Last();
 }
 
 // 매 프레임 적 행동 위젯을 카메라를 향해 회전 — 머리 위 3D 배치를 유지한 채 빌보드 처리
@@ -314,9 +352,9 @@ void ACombatManager::InitCombat()
 
 	// ── 4. 적 유닛 등록 ──────────────────────────────────────────
 	// 우선순위: EnemyTable(도감)+인카운터 ID목록 > EnemyActor 슬롯 > 레벨 스캔
-	// 인카운터 ID 출처: Encounter 에셋 우선, 없으면 인라인 EncounterEnemyIDs
-	const TArray<FName>& EncounterIDs = (Encounter && Encounter->EnemyIDs.Num() > 0)
-		? Encounter->EnemyIDs : EncounterEnemyIDs;
+	// 인카운터 ID 출처 우선순위: StageEncounterTable(방 타입 랜덤) > 인라인 EncounterEnemyIDs(테스트)
+	const FStageEncounterRow* PickedRow = PickEncounterFromTable();
+	const TArray<FName>& EncounterIDs = PickedRow ? PickedRow->EnemyIDs : EncounterEnemyIDs;
 
 	// (bEnemyManualSet이면 SetEnemyActor로 지정한 값을 그대로 사용)
 	if (!bEnemyManualSet && EnemyTable && EnemyActorClass && EncounterIDs.Num() > 0)
@@ -442,15 +480,6 @@ void ACombatManager::InitCombat()
 			BattleWidget->AddToViewport();
 		else
 			UE_LOG(LogTemp, Error, TEXT("[CombatManager] BattleWidget creation failed"));
-	}
-
-	// 수동 세팅 사용 중이면 화면 좌상단에 표시
-	if ((bPlayerManualSet || bEnemyManualSet) && GEngine)
-	{
-		const FString Msg = FString::Printf(TEXT("[테스트 세팅 사용중] Player:%s  Enemy:%s"),
-			bPlayerManualSet ? TEXT("수동") : TEXT("자동"),
-			bEnemyManualSet  ? TEXT("수동") : TEXT("자동"));
-		GEngine->AddOnScreenDebugMessage(999, 99999.f, FColor::Yellow, Msg);
 	}
 
 	// 모든 액터의 BeginPlay가 완료된 후 드로우가 실행되도록 한 프레임 지연

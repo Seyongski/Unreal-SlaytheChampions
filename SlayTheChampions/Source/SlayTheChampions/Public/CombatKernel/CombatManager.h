@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Card/CardDataTypes.h"
 #include "Unit/CombatTypes.h"
+#include "Map/MapEnum.h"   // EAreaType (스테이지 인카운터 선택)
 #include "CombatManager.generated.h"
 
 class UStatComponent;
@@ -16,7 +17,7 @@ class UCardComboEvaluator;
 class UDataTable;
 class UWidgetComponent;
 class UEnemyDataTable;
-class UEncounterData;
+struct FStageEncounterRow;
 
 /**
  * ETurnPhase
@@ -123,20 +124,36 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
 	TSubclassOf<ACameraActor> BattleCameraClass;
 
-	// 적 도감(여러 적 정의를 담은 데이터 에셋) — EncounterEnemyIDs로 이번 전투 등장 적을 선택
-	// 설정 시 최우선으로 사용: EnemyActorClass를 스폰 후 EnemyID로 데이터를 주입
+	// 적 도감(EnemyID별 풀스펙을 담은 데이터 에셋) — 등장 적 선택은 StageEncounterTable/EncounterEnemyIDs가 결정.
+	// 뽑힌 EnemyID로 여기서 정의를 찾아 EnemyActorClass를 스폰 후 데이터를 주입한다.
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Combat|Setup")
 	UEnemyDataTable* EnemyTable = nullptr;
 
-	// 이번 전투의 적 구성 에셋 (EnemyTable에서 뽑아올 EnemyID 목록)
-	// 설정 시 아래 EncounterEnemyIDs(인라인 목록)보다 우선
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Combat|Setup")
-	UEncounterData* Encounter = nullptr;
-
-	// 인카운터 에셋 없이 빠르게 테스트할 때 쓰는 인라인 EnemyID 목록 (최대 3)
-	// Encounter 에셋이 지정돼 있으면 무시됨
+	// 스테이지 테이블 없이 빠르게 테스트할 때 쓰는 인라인 EnemyID 목록 (최대 3)
+	// StageEncounterTable이 지정돼 행이 뽑히면 무시됨
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Setup")
 	TArray<FName> EncounterEnemyIDs;
+
+	// 스테이지 인카운터 테이블 (행: FStageEncounterRow) — 방 타입/층에 맞는 인카운터를 가중치 랜덤 선택.
+	// 레벨별로 지정하거나 SetStageEncounterTable로 런타임 주입. 지정 시 EncounterEnemyIDs(인라인)보다 우선.
+	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
+	UDataTable* StageEncounterTable = nullptr;
+
+	// 이 전투의 방 타입 — StageEncounterTable 행 필터에 사용 (레벨별 설정 또는 런타임 주입)
+	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
+	EAreaType CombatAreaType = EAreaType::Normal;
+
+	// 이 전투의 층 — StageEncounterTable의 Min/MaxFloor 필터 (레벨별 설정 또는 런타임 주입)
+	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
+	int32 CombatFloor = 0;
+
+	// 런타임에 스테이지 테이블 주입 (RunSystem/레벨이 BeginCombat 전에 호출 가능)
+	UFUNCTION(BlueprintCallable, Category = "Combat|Setup")
+	void SetStageEncounterTable(UDataTable* InTable) { StageEncounterTable = InTable; }
+
+	// 런타임에 방 타입/층 주입
+	UFUNCTION(BlueprintCallable, Category = "Combat|Setup")
+	void SetCombatArea(EAreaType InAreaType, int32 InFloor) { CombatAreaType = InAreaType; CombatFloor = InFloor; }
 
 	// EnemyTable 경로로 스폰할 제네릭 적 액터 클래스 (EnemyInitializerComponent를 가진 BP_Enemy)
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
@@ -152,13 +169,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat|Setup")
 	bool bAutoBeginCombat = true;
 
-	// ── 스폰 수 ──────────────────────────────────────────────────
-	// 전투에 참여할 플레이어 수 (1~3)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Setup", meta = (ClampMin = "1", ClampMax = "3"))
+	// ── 스폰 수 (런타임 출력) ─────────────────────────────────────
+	// InitCombat에서 실제 스폰된 유닛 수로 갱신됨 — 에디터 입력값이 아니라 결과값(읽기 전용)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Setup")
 	int32 PlayerCount = 1;
 
-	// 전투에 참여할 적 수 (1~3)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Setup", meta = (ClampMin = "1", ClampMax = "3"))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Setup")
 	int32 EnemyCount = 1;
 
 	// ── 스폰 위치 박스 ────────────────────────────────────────────
@@ -410,7 +426,7 @@ private:
 
 	// 페이즈를 전환하고 CheckCombatEnd -> OnPhaseChanged 브로드캐스트
 	void SetPhase(ETurnPhase NewPhase);
-	// 전투 종료 조건(전멸) 확인 후 로그 출력 (TODO: 화면 전환 연결)
+	// 전투 종료 조건(전멸) 확인 — 전멸 감지 시 EndCombat 호출
 	void CheckCombatEnd();
 	// 지정 유닛의 Shield만 0으로 리셋
 	void ApplyShieldReset(const TArray<AUnit*>& Units);
@@ -428,4 +444,9 @@ private:
 
 	// 스폰 위치 BoxComponent를 생성하고 루트에 부착하는 헬퍼
 	UBoxComponent* SetupBox(const FName& BoxName, const FVector& RelativeLocation, const FColor& Color);
+
+	// StageEncounterTable에서 CombatAreaType/CombatFloor에 맞는 행을 가중치 랜덤으로 선택 (없으면 nullptr)
+	// 반환된 행의 EnemyIDs로 적을 스폰한다.
+	// TODO: Boss 타입은 런 시작 시 1개 확정 옵션을 추후 추가 (지금은 보스도 랜덤)
+	const FStageEncounterRow* PickEncounterFromTable() const;
 };
