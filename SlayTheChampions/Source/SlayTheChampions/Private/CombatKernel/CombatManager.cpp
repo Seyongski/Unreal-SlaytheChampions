@@ -25,6 +25,8 @@
 #include "Unit/Job/JobComponent.h"   // 스폰된 플레이어에 직업(SetJobClass) 주입용
 #include "Party/PartyInstance.h"
 #include "VFX/VFXComponent.h"
+#include "Unit/Enemy/GimmickComponent.h"
+#include "Unit/Enemy/Gimmick/Gimmick_Summoner.h" //소환 처리
 #include "EngineUtils.h"
 
 // 생성자: 스폰 위치 박스 컴포넌트들을 미리 배치
@@ -103,6 +105,28 @@ UBoxComponent* ACombatManager::SetupBox(const FName& BoxName,
 	Box->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Box->SetHiddenInGame(true);
 	return Box;
+}
+
+void ACombatManager::BindGimmickDelegates(AUnit* Enemy)
+{
+	UGimmickComponent* G = Enemy->FindComponentByClass<UGimmickComponent>();
+	if (!G) return;
+
+	G->OnGimmickDamageRequest.AddDynamic(this, &ACombatManager::HandleGimmickDamage);
+	G->OnGimmickAnnounce.AddDynamic(this, &ACombatManager::HandleGimmickAnnounce);
+}
+
+void ACombatManager::HandleGimmickDamage(ETargetType TargetType, int32 Damage)
+{
+	if (TargetType == ETargetType::AllEnemies)
+		for (AUnit* P : SpawnedPlayers)
+			if (P && P->IsAlive())
+				UEffectManager::ProcessDamage(P, Damage, nullptr);
+}
+
+void ACombatManager::HandleGimmickAnnounce(const FText& Text)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Gimmick] %s"), *Text.ToString());
 }
 
 void ACombatManager::BeginPlay()
@@ -420,6 +444,10 @@ void ACombatManager::InitCombat()
 		if (EnemyCount > 0)
 			UE_LOG(LogTemp, Log, TEXT("[CombatManager] 레벨에서 적 %d명 자동 탐색"), EnemyCount);
 	}
+	// 4.0.1 기믹 델리게이트 바인딩
+	//스폰 경로와 무관하게 SpawnEnemies가 확정된 이후 1곳에서만 처리
+	for (AUnit* Enemy : SpawnedEnemies)
+		if (Enemy) BindGimmickDelegates(Enemy);
 
 	// ── 4-1. 적 행동 위젯 컴포넌트 캐시 ──────────────────────────
 	// 각 적의 MonsterActionWidget을 호스팅하는 WidgetComponent를 모아 Tick에서 카메라를 향해 회전시킨다.
@@ -810,6 +838,18 @@ void ACombatManager::ExecuteNextEnemyAction()
 	UNPCBrainComponent* Brain = Enemy->FindComponentByClass<UNPCBrainComponent>();
 	if (Brain)
 		ExecuteEnemyAction(Enemy, Brain->PendingAction);
+	//[기믹] 패턴 실행 직후 - 소환 회복 분노등 "행동형"기믹
+	//기믹을 먼저 사용하고 싶으면 ExecuteEnemyAction위로 올리기
+	if (UGimmickComponent* Gimmick = Enemy->FindComponentByClass<UGimmickComponent>())
+	{
+		Gimmick->OnTurnEnd();
+
+		//소환은 "어느적이 소환했는지 처리 컨텍스트 필요" ->이자리에서 직접 처리
+		if (UGimmick_Summoner* Sum = Cast<UGimmick_Summoner>(Gimmick))
+		{
+			//소환처리
+		}
+	}
 
 	// EnemyActionDelay 후 다음 적 자동 진행 (에디터 Combat|Timing에서 조정)
 	GetWorldTimerManager().SetTimer(
@@ -850,6 +890,12 @@ void ACombatManager::PlanAllEnemyActions()
 	{
 		if (!Enemy || !Enemy->IsAlive()) continue;
 
+		//[기믹] 계획 직전 - 의도에 영향을 주는 처리
+		//반드시PlanNextAction보다 먼저 처리
+		if (UGimmickComponent* Gimmick = Enemy->FindComponentByClass<UGimmickComponent>())
+		{
+			Gimmick->OnTurnStart();
+		}
 		UNPCBrainComponent* Brain = Enemy->FindComponentByClass<UNPCBrainComponent>();
 		if (!Brain) continue;
 
