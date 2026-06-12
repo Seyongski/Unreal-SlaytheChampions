@@ -101,6 +101,15 @@ public:
 	UFUNCTION(BlueprintPure)
 	int32 GetSavedMaxHP(int32 Index) const;
 
+	// 휴식 등에서 모든 파티원 HP를 MaxHP 비율만큼 회복 (저장된 HP에 직접 적용)
+	// Percent=0.3 이면 각자 MaxHP의 30% 회복, MaxHP 초과 안 함. 죽은 액터 불필요.
+	UFUNCTION(BlueprintCallable)
+	void HealAllChampionsByPercent(float Percent);
+
+	// 휴식 등에서 모든 파티원 HP를 고정값만큼 회복
+	UFUNCTION(BlueprintCallable)
+	void HealAllChampions(int32 Amount);
+
 	// ── 덱 관리 (카드 시스템의 런타임 소스 of truth) ─────────────────────────
 
 	// PawnIndex 파티원의 전체 덱을 교체 (전투 종료 후 SaveDeckToSaveGame에서 호출)

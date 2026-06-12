@@ -160,6 +160,29 @@ int32 UPartyInstance::GetSavedMaxHP(int32 Index) const
 	return PartyInfo.ChampionMaxHPs.IsValidIndex(Index) ? PartyInfo.ChampionMaxHPs[Index] : 0;
 }
 
+void UPartyInstance::HealAllChampionsByPercent(float Percent)
+{
+	for (int32 i = 0; i < PartyInfo.ChampionCurrentHPs.Num(); ++i)
+	{
+		const int32 MaxHP = PartyInfo.ChampionMaxHPs.IsValidIndex(i) ? PartyInfo.ChampionMaxHPs[i] : 0;
+		if (MaxHP <= 0) continue;
+		const int32 HealAmount = FMath::CeilToInt(MaxHP * Percent);
+		PartyInfo.ChampionCurrentHPs[i] = FMath::Min(PartyInfo.ChampionCurrentHPs[i] + HealAmount, MaxHP);
+		UE_LOG(LogTemp, Log, TEXT("[PartyInstance] Heal Pawn%d +%d → %d/%d"),
+			i, HealAmount, PartyInfo.ChampionCurrentHPs[i], MaxHP);
+	}
+}
+
+void UPartyInstance::HealAllChampions(int32 Amount)
+{
+	for (int32 i = 0; i < PartyInfo.ChampionCurrentHPs.Num(); ++i)
+	{
+		const int32 MaxHP = PartyInfo.ChampionMaxHPs.IsValidIndex(i) ? PartyInfo.ChampionMaxHPs[i] : 0;
+		if (MaxHP <= 0) continue;
+		PartyInfo.ChampionCurrentHPs[i] = FMath::Min(PartyInfo.ChampionCurrentHPs[i] + Amount, MaxHP);
+	}
+}
+
 void UPartyInstance::SetDeck(int32 PawnIndex, const TArray<FName>& Cards)
 {
 	if (PawnIndex < 0) return;
